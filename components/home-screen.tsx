@@ -18,21 +18,28 @@ export function HomeScreen() {
   const today = new Date().toISOString().split('T')[0]
   const [selectedDate, setSelectedDate] = useState(today)
   const [isExpanded, setIsExpanded] = useState(false)
+  const [expandedDate, setExpandedDate] = useState(today)
   const [showAddEventModal, setShowAddEventModal] = useState(false)
   const [showAddGoalModal, setShowAddGoalModal] = useState(false)
   const [showRemindersModal, setShowRemindersModal] = useState(false)
   const [showSettingsModal, setShowSettingsModal] = useState(false)
   const { primaryColor } = useTheme()
 
-  const formattedDate = new Date(selectedDate + 'T00:00:00Z').toLocaleDateString('en-US', {
+  const formattedDate = new Date(today + 'T00:00:00Z').toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
     day: 'numeric',
   })
 
+  const handleCalendarDateSelect = (date: string) => {
+    setSelectedDate(date)
+    setExpandedDate(date)
+    setIsExpanded(true)
+  }
+
   if (isExpanded) {
-    return <DayView date={selectedDate} onBack={() => setIsExpanded(false)} />
+    return <DayView date={expandedDate} onBack={() => setIsExpanded(false)} />
   }
 
   return (
@@ -67,7 +74,7 @@ export function HomeScreen() {
         <div className="grid grid-cols-3 gap-8">
           {/* Left Column: Mini Calendar & Stats */}
           <div className="space-y-6">
-            <MiniCalendar onDateSelect={setSelectedDate} selectedDate={selectedDate} />
+            <MiniCalendar onDateSelect={handleCalendarDateSelect} selectedDate={selectedDate} />
             
             <div className="bg-card rounded-lg border border-border p-4">
               <h3 className="text-sm font-semibold mb-4">Stats</h3>
@@ -92,19 +99,16 @@ export function HomeScreen() {
           <div className="space-y-6">
             <div className="bg-card rounded-lg border border-border p-6">
               <p className="text-sm text-muted-foreground mb-2">Today</p>
-              <h2 
-                className="text-4xl font-bold cursor-pointer hover:opacity-75 transition-opacity"
-                onClick={() => setIsExpanded(true)}
-              >
+              <h2 className="text-4xl font-bold">
                 {formattedDate}
               </h2>
             </div>
 
-            <CurrentTimers date={selectedDate} />
+            <CurrentTimers date={today} />
 
             <div className="bg-card rounded-lg border border-border p-4">
               <h3 className="text-sm font-semibold mb-3">Today&apos;s Tasks</h3>
-              <EventTimerList date={selectedDate} onTimerStarted={() => {}} />
+              <EventTimerList date={today} onTimerStarted={() => {}} />
             </div>
           </div>
 
@@ -140,14 +144,14 @@ export function HomeScreen() {
       <AddEventModal
         isOpen={showAddEventModal}
         onClose={() => setShowAddEventModal(false)}
-        date={selectedDate}
+        date={today}
         onEventCreated={() => {}}
       />
 
       <AddGoalModal
         isOpen={showAddGoalModal}
         onClose={() => setShowAddGoalModal(false)}
-        date={selectedDate}
+        date={today}
         onGoalCreated={() => {}}
       />
 
