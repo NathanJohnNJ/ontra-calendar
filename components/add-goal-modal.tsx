@@ -20,7 +20,16 @@ export function AddGoalModal({ isOpen, onClose, date, onGoalCreated }: AddGoalMo
   const [goalTimeMinutes, setGoalTimeMinutes] = useState('60')
   const [startTime, setStartTime] = useState('')
   const [repeatFrequency, setRepeatFrequency] = useState('once')
+  const [daysOfWeek, setDaysOfWeek] = useState<number[]>([])
   const [isLoading, setIsLoading] = useState(false)
+
+  const daysLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+  const toggleDay = (day: number) => {
+    setDaysOfWeek((prev) =>
+      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day].sort(),
+    )
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -38,13 +47,14 @@ export function AddGoalModal({ isOpen, onClose, date, onGoalCreated }: AddGoalMo
       })
 
       // Then create the goal linked to this event
-      await createGoal(eventId, parseInt(goalTimeMinutes), repeatFrequency)
+      await createGoal(eventId, parseInt(goalTimeMinutes), repeatFrequency, daysOfWeek)
 
       setTitle('')
       setDescription('')
       setGoalTimeMinutes('60')
       setStartTime('')
       setRepeatFrequency('once')
+      setDaysOfWeek([])
       onGoalCreated?.()
       onClose()
     } catch (error) {
@@ -128,6 +138,33 @@ export function AddGoalModal({ isOpen, onClose, date, onGoalCreated }: AddGoalMo
               <option value="monthly">Monthly</option>
             </select>
           </div>
+
+          {repeatFrequency !== 'once' && repeatFrequency !== 'monthly' && (
+            <div>
+              <Label>Days of Week</Label>
+              <div className="grid grid-cols-7 gap-2">
+                {daysLabels.map((day, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => toggleDay(index)}
+                    className={`py-2 px-1 text-sm font-medium rounded transition-colors ${
+                      daysOfWeek.includes(index)
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    }`}
+                  >
+                    {day}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                {daysOfWeek.length === 0
+                  ? 'Select days to limit recurrence, or leave empty for all days'
+                  : `Recurring on: ${daysOfWeek.map((d) => daysLabels[d]).join(', ')}`}
+              </p>
+            </div>
+          )}
 
           <div className="bg-muted p-3 rounded text-sm text-muted-foreground">
             <p>You&apos;ll be able to start the timer once the goal is created.</p>

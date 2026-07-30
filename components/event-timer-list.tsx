@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Play, Pause } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { getEventsForDate, startTimerSession } from '@/app/actions/calendar'
+import { getEventsForDateWithRecurring, startTimerSession } from '@/app/actions/calendar'
 
 interface Event {
   id: string
@@ -29,7 +29,7 @@ export function EventTimerList({ date, onTimerStarted }: EventTimerListProps) {
   const loadEvents = async () => {
     setIsLoading(true)
     try {
-      const loaded = await getEventsForDate(date)
+      const loaded = await getEventsForDateWithRecurring(date)
       setEvents(loaded)
     } catch (error) {
       console.error('Failed to load events:', error)

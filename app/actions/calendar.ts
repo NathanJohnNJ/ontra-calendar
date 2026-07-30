@@ -9,10 +9,11 @@ import {
   reminders,
   userPreferences,
 } from '@/lib/db/schema'
-import { eq, and, desc, gte, lte } from 'drizzle-orm'
+import { eq, and, desc, gte, lte, or } from 'drizzle-orm'
 import { headers } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { v4 as uuidv4 } from 'uuid'
+import { goalAppliesToDate } from '@/lib/recurring-goals'
 
 async function getUserId() {
   const session = await auth.api.getSession({ headers: await headers() })
@@ -60,6 +61,58 @@ export async function getEventsForDate(date: string) {
     .orderBy(events.startTime)
 }
 
+export async function getEventsForDateWithRecurring(date: string) {
+  const userId = await getUserId()
+
+  // Get events specifically for this date
+  const directEvents = await db
+    .select()
+    .from(events)
+    .where(and(eq(events.userId, userId), eq(events.date, date)))
+
+  // Get all goals (recurring and one-time) that belong to this user
+  const allGoals = await db
+    .select()
+    .from(goals)
+    .where(eq(goals.userId, userId))
+
+  // Get all events that have goals (to check recurring patterns)
+  const goalsWithEvents = await Promise.all(
+    allGoals.map(async (goal) => {
+      const eventData = await db
+        .select()
+        .from(events)
+        .where(eq(events.id, goal.eventId))
+        .limit(1)
+      return { goal, event: eventData[0] }
+    }),
+  )
+
+  // Filter goals that apply to this date and create virtual events for them
+  const recurringEventInstances: typeof events.$inferSelect[] = goalsWithEvents
+    .filter(({ goal, event }) => {
+      if (!event) return false
+      return goalAppliesToDate(
+        goal.repeatFrequency as any,
+        goal.daysOfWeek,
+        event.date,
+        date,
+      )
+    })
+    .map(({ event }) => event)
+
+  // Combine direct events and recurring instances, remove duplicates
+  const allEvents = [
+    ...directEvents,
+    ...recurringEventInstances.filter(
+      (recurringEvent) =>
+        !directEvents.some((directEvent) => directEvent.id === recurringEvent.id),
+    ),
+  ]
+
+  return allEvents.sort((a, b) => (a.startTime ?? '') > (b.startTime ?? '') ? 1 : -1)
+}
+
 export async function updateEvent(
   id: string,
   data: Partial<typeof events.$inferInsert>,
@@ -85,6 +138,7 @@ export async function createGoal(
   eventId: string,
   goalTimeMinutes: number,
   repeatFrequency: string = 'once',
+  daysOfWeek: number[] = [],
 ) {
   const userId = await getUserId()
   const goalId = uuidv4()
@@ -95,6 +149,7 @@ export async function createGoal(
     eventId,
     goalTimeMinutes,
     repeatFrequency,
+    daysOfWeek: JSON.stringify(daysOfWeek),
     createdAt: new Date(),
   })
 

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { ChevronLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { getEventsForDate, getDayStats } from '@/app/actions/calendar'
+import { getEventsForDateWithRecurring, getDayStats } from '@/app/actions/calendar'
 import { EventTimerList } from './event-timer-list'
 
 interface Event {
@@ -40,7 +40,7 @@ export function DayView({ date, onBack }: DayViewProps) {
     setIsLoading(true)
     try {
       const [loadedEvents, dayStats] = await Promise.all([
-        getEventsForDate(date),
+        getEventsForDateWithRecurring(date),
         getDayStats(date),
       ])
       setEvents(loadedEvents)
