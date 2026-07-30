@@ -81,7 +81,11 @@ export async function deleteEvent(id: string) {
 }
 
 // Goal Actions
-export async function createGoal(eventId: string, goalTimeMinutes: number) {
+export async function createGoal(
+  eventId: string,
+  goalTimeMinutes: number,
+  repeatFrequency: string = 'once',
+) {
   const userId = await getUserId()
   const goalId = uuidv4()
 
@@ -90,6 +94,7 @@ export async function createGoal(eventId: string, goalTimeMinutes: number) {
     userId,
     eventId,
     goalTimeMinutes,
+    repeatFrequency,
     createdAt: new Date(),
   })
 

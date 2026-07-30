@@ -82,6 +82,7 @@ export const goals = pgTable('goals', {
     .notNull()
     .references(() => events.id),
   goalTimeMinutes: integer('goalTimeMinutes').notNull(),
+  repeatFrequency: text('repeatFrequency').notNull().default('once'),
   createdAt: timestamp('createdAt').notNull().defaultNow(),
 })
 

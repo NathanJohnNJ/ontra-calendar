@@ -19,6 +19,7 @@ export function AddGoalModal({ isOpen, onClose, date, onGoalCreated }: AddGoalMo
   const [description, setDescription] = useState('')
   const [goalTimeMinutes, setGoalTimeMinutes] = useState('60')
   const [startTime, setStartTime] = useState('')
+  const [repeatFrequency, setRepeatFrequency] = useState('once')
   const [isLoading, setIsLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -37,12 +38,13 @@ export function AddGoalModal({ isOpen, onClose, date, onGoalCreated }: AddGoalMo
       })
 
       // Then create the goal linked to this event
-      await createGoal(eventId, parseInt(goalTimeMinutes))
+      await createGoal(eventId, parseInt(goalTimeMinutes), repeatFrequency)
 
       setTitle('')
       setDescription('')
       setGoalTimeMinutes('60')
       setStartTime('')
+      setRepeatFrequency('once')
       onGoalCreated?.()
       onClose()
     } catch (error) {
@@ -109,6 +111,22 @@ export function AddGoalModal({ isOpen, onClose, date, onGoalCreated }: AddGoalMo
                 onChange={(e) => setStartTime(e.target.value)}
               />
             </div>
+          </div>
+
+          <div>
+            <Label htmlFor="repeat-frequency">Repeat</Label>
+            <select
+              id="repeat-frequency"
+              value={repeatFrequency}
+              onChange={(e) => setRepeatFrequency(e.target.value)}
+              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="once">No Repeat (Once)</option>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="biweekly">Bi-Weekly</option>
+              <option value="monthly">Monthly</option>
+            </select>
           </div>
 
           <div className="bg-muted p-3 rounded text-sm text-muted-foreground">
