@@ -9,7 +9,7 @@ import {
   reminders,
   userPreferences,
 } from '@/lib/db/schema'
-import { eq, and, desc, gte, lte, or } from 'drizzle-orm'
+import { eq, and, desc, gte, lte, or, isNull } from 'drizzle-orm'
 import { headers } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { v4 as uuidv4 } from 'uuid'
@@ -290,7 +290,7 @@ export async function getActiveTimerSessions(date: string) {
     .where(
       and(
         eq(timerSessions.userId, userId),
-        eq(timerSessions.sessionEnd, null),
+        isNull(timerSessions.sessionEnd),
         gte(
           timerSessions.sessionStart,
           new Date(`${date}T00:00:00Z`),
@@ -336,7 +336,7 @@ export async function getDayStats(date: string) {
 // Reminder Actions
 export async function createReminder(
   eventId: string,
-  reminderType: string,
+  reminderType: 'event' | 'goal_focus' | 'track_time',
   reminderTime: Date,
 ) {
   const userId = await getUserId()
@@ -346,7 +346,7 @@ export async function createReminder(
     id: reminderId,
     userId,
     eventId,
-    reminderType,
+    reminderType: reminderType as any,
     reminderTime,
     isDismissed: false,
     createdAt: new Date(),
