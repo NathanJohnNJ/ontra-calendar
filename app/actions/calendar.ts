@@ -190,6 +190,26 @@ export async function getGoalsForEvent(eventId: string) {
     .where(and(eq(goals.userId, userId), eq(goals.eventId, eventId)))
 }
 
+export async function getGoalsForDate(date: string) {
+  const userId = await getUserId()
+
+  // Get all goal-based events for this date
+  const goalEvents = await getEventsForDateWithRecurring(date)
+  const goalEventIds = goalEvents.filter((e) => e.eventType === 'goal_based').map((e) => e.id)
+
+  if (goalEventIds.length === 0) {
+    return []
+  }
+
+  // Get all goals for these events
+  const allGoals = await db
+    .select()
+    .from(goals)
+    .where(and(eq(goals.userId, userId)))
+
+  return allGoals.filter((goal) => goalEventIds.includes(goal.eventId))
+}
+
 // Timer Session Actions
 export async function startTimerSession(goalId: string, eventId: string) {
   const userId = await getUserId()

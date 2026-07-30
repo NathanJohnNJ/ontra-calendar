@@ -48,8 +48,11 @@ export function MiniCalendar({ onDateSelect, selectedDate }: MiniCalendarProps) 
 
   const handleDateClick = (day: number | null) => {
     if (day) {
-      const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day)
-      const dateStr = date.toISOString().split('T')[0]
+      // Use the date string directly to avoid timezone issues
+      const year = currentDate.getFullYear()
+      const month = String(currentDate.getMonth() + 1).padStart(2, '0')
+      const dayStr = String(day).padStart(2, '0')
+      const dateStr = `${year}-${month}-${dayStr}`
       onDateSelect(dateStr)
     }
   }

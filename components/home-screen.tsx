@@ -3,12 +3,11 @@
 import { useState } from 'react'
 import { MiniCalendar } from './mini-calendar'
 import { ClockWidget } from './clock-widget'
-import { CurrentTimers } from './current-timers'
 import { AddEventModal } from './add-event-modal'
 import { AddGoalModal } from './add-goal-modal'
 import { RemindersModal } from './reminders-modal'
 import { SettingsModal } from './settings-modal'
-import { EventTimerList } from './event-timer-list'
+import { ActiveTimersWidget } from './active-timers-widget'
 import { DayView } from './day-view'
 import { useTheme } from '@/lib/theme-context'
 import { Bell, Settings } from 'lucide-react'
@@ -81,18 +80,16 @@ export function HomeScreen() {
 
           {/* Center Column: Date & Current Tasks */}
           <div className="space-y-6">
-            <div className="bg-card rounded-lg border border-border p-6">
+            <div className="bg-card rounded-lg border border-border p-6 w-min">
               <p className="text-sm text-muted-foreground mb-2">Today</p>
-              <h2 className="text-4xl font-bold whitespace-nowrap overflow-hidden text-ellipsis">
+              <h2 className="text-2xl font-bold">
                 {formattedDate}
               </h2>
             </div>
 
-            <CurrentTimers date={today} />
-
             <div className="bg-card rounded-lg border border-border p-4">
-              <h3 className="text-sm font-semibold mb-3">Today&apos;s Tasks</h3>
-              <EventTimerList date={today} onTimerStarted={() => {}} />
+              <h3 className="text-sm font-semibold mb-3">Active Timers</h3>
+              <ActiveTimersWidget date={today} onAddGoal={() => setShowAddGoalModal(true)} />
             </div>
           </div>
 
