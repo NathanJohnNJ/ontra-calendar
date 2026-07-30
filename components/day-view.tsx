@@ -61,10 +61,14 @@ export function DayView({ date, onBack }: DayViewProps) {
     })
   }
 
-  const hourSlots = Array.from({ length: 24 }, (_, i) => i)
+  // Show every 4 hours unless there are events, then show more detail
+  const hasEvents = events.length > 0
+  const hourSlots = hasEvents 
+    ? Array.from({ length: 24 }, (_, i) => i)
+    : Array.from({ length: 6 }, (_, i) => i * 4)
 
   return (
-    <div className="min-h-screen bg-background p-4">
+    <div className="min-h-screen bg-background p-4 transition-all duration-300 ease-out">
       {/* Header */}
       <div className="max-w-6xl mx-auto mb-8">
         <Button

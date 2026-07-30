@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { Clock, Clock12 } from 'lucide-react'
 import { useTheme } from '@/lib/theme-context'
 
 export function ClockWidget() {
@@ -50,9 +51,10 @@ export function ClockWidget() {
       )}
       <button
         onClick={() => setClockType(clockType === 'digital' ? 'analog' : 'digital')}
-        className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+        className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-colors"
+        title={`Switch to ${clockType === 'digital' ? 'analog' : 'digital'} clock`}
       >
-        Switch to {clockType === 'digital' ? 'analog' : 'digital'}
+        {clockType === 'digital' ? <Clock12 className="h-5 w-5" /> : <Clock className="h-5 w-5" />}
       </button>
     </div>
   )

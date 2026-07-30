@@ -30,6 +30,8 @@ export async function createEvent(data: {
   endTime?: string
   eventType: 'regular' | 'goal_based'
   color?: string
+  repeatFrequency?: string
+  daysOfWeek?: number[]
 }) {
   const userId = await getUserId()
   const eventId = uuidv4()
@@ -44,6 +46,8 @@ export async function createEvent(data: {
     endTime: data.endTime,
     eventType: data.eventType,
     color: data.color,
+    repeatFrequency: data.repeatFrequency || 'once',
+    daysOfWeek: JSON.stringify(data.daysOfWeek || []),
     createdAt: new Date(),
     updatedAt: new Date(),
   })
@@ -70,6 +74,23 @@ export async function getEventsForDateWithRecurring(date: string) {
     .from(events)
     .where(and(eq(events.userId, userId), eq(events.date, date)))
 
+  // Get all events that are recurring
+  const allEvents = await db
+    .select()
+    .from(events)
+    .where(eq(events.userId, userId))
+
+  // Filter recurring events that apply to this date
+  const recurringEventInstances = allEvents.filter((evt) => {
+    if (evt.repeatFrequency === 'once') return false
+    return goalAppliesToDate(
+      evt.repeatFrequency as any,
+      evt.daysOfWeek,
+      evt.date,
+      date,
+    )
+  })
+
   // Get all goals (recurring and one-time) that belong to this user
   const allGoals = await db
     .select()
@@ -88,8 +109,8 @@ export async function getEventsForDateWithRecurring(date: string) {
     }),
   )
 
-  // Filter goals that apply to this date and create virtual events for them
-  const recurringEventInstances: typeof events.$inferSelect[] = goalsWithEvents
+  // Filter goals that apply to this date
+  const recurringGoalInstances = goalsWithEvents
     .filter(({ goal, event }) => {
       if (!event) return false
       return goalAppliesToDate(
@@ -101,16 +122,20 @@ export async function getEventsForDateWithRecurring(date: string) {
     })
     .map(({ event }) => event)
 
-  // Combine direct events and recurring instances, remove duplicates
-  const allEvents = [
+  // Combine direct events, recurring events, and recurring goal instances, remove duplicates
+  const combinedEvents = [
     ...directEvents,
     ...recurringEventInstances.filter(
-      (recurringEvent) =>
-        !directEvents.some((directEvent) => directEvent.id === recurringEvent.id),
+      (evt) => !directEvents.some((de) => de.id === evt.id),
+    ),
+    ...recurringGoalInstances.filter(
+      (evt) =>
+        !directEvents.some((de) => de.id === evt.id) &&
+        !recurringEventInstances.some((re) => re.id === evt.id),
     ),
   ]
 
-  return allEvents.sort((a, b) => (a.startTime ?? '') > (b.startTime ?? '') ? 1 : -1)
+  return combinedEvents.sort((a, b) => (a.startTime ?? '') > (b.startTime ?? '') ? 1 : -1)
 }
 
 export async function updateEvent(

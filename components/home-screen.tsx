@@ -46,34 +46,18 @@ export function HomeScreen() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border bg-card">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold" style={{ color: primaryColor }}>
+        <div className="max-w-7xl mx-auto px-4 py-6 flex items-center justify-center">
+          <h1 className="text-5xl font-bold text-center" style={{ color: primaryColor }}>
             Ontra Calendar
           </h1>
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={() => setShowRemindersModal(true)}
-            >
-              <Bell className="h-5 w-5" />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={() => setShowSettingsModal(true)}
-            >
-              <Settings className="h-5 w-5" />
-            </Button>
-          </div>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
         <div className="grid grid-cols-3 gap-8">
-          {/* Left Column: Mini Calendar & Stats */}
-          <div className="space-y-6">
+          {/* Left Column: Mini Calendar */}
+          <div className="space-y-4">
             <MiniCalendar onDateSelect={handleCalendarDateSelect} selectedDate={selectedDate} />
             
             <div className="bg-card rounded-lg border border-border p-4">
@@ -99,7 +83,7 @@ export function HomeScreen() {
           <div className="space-y-6">
             <div className="bg-card rounded-lg border border-border p-6">
               <p className="text-sm text-muted-foreground mb-2">Today</p>
-              <h2 className="text-4xl font-bold">
+              <h2 className="text-4xl font-bold whitespace-nowrap overflow-hidden text-ellipsis">
                 {formattedDate}
               </h2>
             </div>
@@ -112,14 +96,38 @@ export function HomeScreen() {
             </div>
           </div>
 
-          {/* Right Column: Clock & Settings */}
-          <div className="flex flex-col items-center space-y-6">
+          {/* Right Column: Clock & Widgets */}
+          <div className="flex flex-col items-center space-y-4">
+            {/* Clock Widget */}
             <div className="bg-card rounded-lg border border-border p-6 w-full flex justify-center">
               <ClockWidget />
             </div>
 
+            {/* Small action widgets */}
+            <div className="grid grid-cols-2 gap-3 w-full">
+              <Button 
+                className="h-16 flex flex-col items-center justify-center rounded-lg border border-border bg-card hover:bg-muted" 
+                variant="ghost"
+                onClick={() => setShowRemindersModal(true)}
+                title="View reminders"
+              >
+                <Bell className="h-6 w-6 mb-1" />
+                <span className="text-xs">Reminders</span>
+              </Button>
+              <Button 
+                className="h-16 flex flex-col items-center justify-center rounded-lg border border-border bg-card hover:bg-muted" 
+                variant="ghost"
+                onClick={() => setShowSettingsModal(true)}
+                title="Open settings"
+              >
+                <Settings className="h-6 w-6 mb-1" />
+                <span className="text-xs">Settings</span>
+              </Button>
+            </div>
+
+            {/* Quick Actions */}
             <div className="bg-card rounded-lg border border-border p-4 w-full">
-              <h3 className="text-sm font-semibold mb-4">Quick Actions</h3>
+              <h3 className="text-sm font-semibold mb-3">Quick Actions</h3>
               <div className="space-y-2">
                 <Button 
                   className="w-full" 

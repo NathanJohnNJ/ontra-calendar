@@ -71,6 +71,8 @@ export const events = pgTable('events', {
   endTime: time('endTime'),
   eventType: eventTypeEnum('eventType').notNull().default('regular'),
   color: text('color'),
+  repeatFrequency: text('repeatFrequency').notNull().default('once'),
+  daysOfWeek: text('daysOfWeek').notNull().default('[]'),
   createdAt: timestamp('createdAt').notNull().defaultNow(),
   updatedAt: timestamp('updatedAt').notNull().defaultNow(),
 })

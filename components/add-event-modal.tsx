@@ -19,7 +19,17 @@ export function AddEventModal({ isOpen, onClose, date, onEventCreated }: AddEven
   const [description, setDescription] = useState('')
   const [startTime, setStartTime] = useState('')
   const [endTime, setEndTime] = useState('')
+  const [repeatFrequency, setRepeatFrequency] = useState('once')
+  const [daysOfWeek, setDaysOfWeek] = useState<number[]>([])
   const [isLoading, setIsLoading] = useState(false)
+
+  const daysLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+  const toggleDay = (day: number) => {
+    setDaysOfWeek((prev) =>
+      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day].sort(),
+    )
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -34,11 +44,15 @@ export function AddEventModal({ isOpen, onClose, date, onEventCreated }: AddEven
         startTime: startTime || undefined,
         endTime: endTime || undefined,
         eventType: 'regular',
+        repeatFrequency,
+        daysOfWeek,
       })
       setTitle('')
       setDescription('')
       setStartTime('')
       setEndTime('')
+      setRepeatFrequency('once')
+      setDaysOfWeek([])
       onEventCreated?.()
       onClose()
     } catch (error) {
@@ -104,6 +118,49 @@ export function AddEventModal({ isOpen, onClose, date, onEventCreated }: AddEven
               />
             </div>
           </div>
+
+          <div>
+            <Label htmlFor="repeat-frequency">Repeat</Label>
+            <select
+              id="repeat-frequency"
+              value={repeatFrequency}
+              onChange={(e) => setRepeatFrequency(e.target.value)}
+              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="once">No Repeat (Once)</option>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="biweekly">Bi-Weekly</option>
+              <option value="monthly">Monthly</option>
+            </select>
+          </div>
+
+          {repeatFrequency !== 'once' && repeatFrequency !== 'monthly' && (
+            <div>
+              <Label>Days of Week</Label>
+              <div className="grid grid-cols-7 gap-2">
+                {daysLabels.map((day, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => toggleDay(index)}
+                    className={`py-2 px-1 text-sm font-medium rounded transition-colors ${
+                      daysOfWeek.includes(index)
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    }`}
+                  >
+                    {day}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                {daysOfWeek.length === 0
+                  ? 'Select days to limit recurrence, or leave empty for all days'
+                  : `Repeating on: ${daysOfWeek.map((d) => daysLabels[d]).join(', ')}`}
+              </p>
+            </div>
+          )}
 
           <div className="flex gap-2 pt-4">
             <Button
