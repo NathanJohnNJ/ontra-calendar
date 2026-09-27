@@ -162,6 +162,93 @@
   }
 }
 
+.dashboard-layout {
+  min-height: 720px;
+}
+
+.dashboard-layout.is-editing {
+  padding: 12px;
+  border: 1px dashed color-mix(in oklch, var(--primary) 35%, var(--border));
+  border-radius: var(--radius-xl);
+  background-image:
+    linear-gradient(to right, color-mix(in oklch, var(--primary) 12%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklch, var(--primary) 12%, transparent) 1px, transparent 1px);
+  background-size: calc((100% - 11 * 24px) / 12 + 24px) 28px;
+}
+
+.dashboard-widget {
+  min-width: 0;
+}
+
+.dashboard-widget .widget-interactive {
+  position: relative;
+}
+
+.dashboard-layout.is-editing .widget-interactive {
+  outline: 2px solid color-mix(in oklch, var(--primary) 32%, transparent);
+  outline-offset: -2px;
+  overflow: visible;
+}
+
+.dashboard-layout.is-editing .widget-interactive.widget-shell {
+  overflow: visible;
+}
+
+.dashboard-layout.is-editing .react-grid-item {
+  z-index: 1;
+}
+
+.dashboard-layout.is-editing .react-grid-item:has(.widget-handle) {
+  z-index: 5;
+}
+
+.widget-handle {
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  z-index: 20;
+  display: flex;
+  cursor: grab;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  padding: 2px 6px;
+  color: var(--muted-foreground);
+  box-shadow: 0 2px 8px color-mix(in oklch, var(--foreground) 10%, transparent);
+}
+
+.widget-handle:active {
+  cursor: grabbing;
+}
+
+.dashboard-layout.is-editing .widget-interactive > :not(.widget-handle) {
+  pointer-events: none;
+}
+
+.dashboard-widget {
+  min-width: 0;
+}
+
+.widget-shell {
+  height: 100%;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: color-mix(in oklch, var(--card) 94%, var(--primary) 6%);
+  box-shadow: 0 10px 30px color-mix(in oklch, var(--foreground) 8%, transparent);
+}
+
+.react-grid-item.react-grid-placeholder {
+  border-radius: var(--radius-xl);
+  background: color-mix(in oklch, var(--primary) 25%, transparent);
+}
+
+@media (max-width: 767px) {
+  .dashboard-layout {
+    min-height: 1200px;
+  }
+}
+
 @layer utilities {
   @keyframes fadeIn {
     from {

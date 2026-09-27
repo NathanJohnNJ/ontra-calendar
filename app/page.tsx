@@ -34,6 +34,7 @@ export default async function Home() {
           goalTimeMinutes: goal.goalTimeMinutes,
         }))}
         initialSessions={openSessions}
+        initialLayout={prefs.dashboardLayout}
       />
     </ThemeProvider>
   )

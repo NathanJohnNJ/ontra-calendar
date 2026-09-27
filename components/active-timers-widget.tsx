@@ -31,6 +31,7 @@ interface ActiveTimersWidgetProps {
   initialGoals?: TimerGoal[]
   /** Open DB sessions for the date; elapsed time is derived from their timestamps. */
   initialSessions?: DbTimerSession[]
+  disabled?: boolean
 }
 
 const EMPTY_MAP = new Map<string, RuntimeSession>()
@@ -71,6 +72,7 @@ export const ActiveTimersWidget = memo(function ActiveTimersWidget({
   onAddGoal,
   initialGoals = [],
   initialSessions = [],
+  disabled = false,
 }: ActiveTimersWidgetProps) {
   const [goals, setGoals] = useState<TimerGoal[]>(initialGoals)
   const [sessions, setSessions] = useState<Map<string, RuntimeSession>>(
@@ -182,8 +184,9 @@ export const ActiveTimersWidget = memo(function ActiveTimersWidget({
             goal={goal}
             session={sessions.get(goal.id)}
             onStart={handleStartTimer}
-            onStop={handleStopTimer}
-          />
+  onStop={handleStopTimer}
+  disabled={disabled}
+  />
         ))}
 
         {/* Add new goal button */}
@@ -226,11 +229,13 @@ const TimerCard = memo(function TimerCard({
   session,
   onStart,
   onStop,
+  disabled = false,
 }: {
   goal: TimerGoal
   session: RuntimeSession | undefined
   onStart: (goalId: string) => void
   onStop: (goalId: string) => void
+  disabled?: boolean
 }) {
   const elapsed = elapsedOf(session)
 
@@ -246,8 +251,9 @@ const TimerCard = memo(function TimerCard({
           size="sm"
           variant="ghost"
           className="h-6 w-6 p-0"
-          onClick={() => onStart(goal.id)}
-        >
+  onClick={() => onStart(goal.id)}
+  disabled={disabled}
+  >
           <Play className="h-3 w-3" />
         </Button>
       ) : (
@@ -255,8 +261,9 @@ const TimerCard = memo(function TimerCard({
           size="sm"
           variant="ghost"
           className="h-6 w-6 p-0"
-          onClick={() => onStop(goal.id)}
-        >
+  onClick={() => onStop(goal.id)}
+  disabled={disabled}
+  >
           <X className="h-3 w-3" />
         </Button>
       )}
