@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useMemo, useState } from 'react'
+import type { ReactNode } from 'react'
 import dynamic from 'next/dynamic'
 import { MiniCalendar } from './mini-calendar'
 import { ClockWidget } from './clock-widget'
@@ -10,45 +11,83 @@ import { Bell, Check, Grip, Pencil, Settings } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { TimerSession } from '@/app/db/types'
 import { updateUserPreferences } from '@/app/actions/calendar'
-import type { Layout, Layouts } from 'react-grid-layout'
-import { ResponsiveGridLayout } from 'react-grid-layout/react'
+import type { ComponentType } from 'react'
+import type { Layout } from 'react-grid-layout'
+
+type Layouts = Partial<Record<string, Layout>>
+import { ResponsiveReactGridLayout, WidthProvider } from 'react-grid-layout/legacy'
+
+const ResponsiveGridLayout = WidthProvider(ResponsiveReactGridLayout)
+const DashboardGrid = ResponsiveGridLayout as unknown as ComponentType<Record<string, unknown>>
 import 'react-grid-layout/css/styles.css'
 
 const defaultLayouts: Layouts = {
   lg: [
-    { i: 'calendar', x: 0, y: 0, w: 4, h: 11, minW: 3, minH: 8 },
-    { i: 'today', x: 4, y: 0, w: 4, h: 4, minW: 3, minH: 3 },
-    { i: 'timers', x: 4, y: 4, w: 4, h: 7, minW: 3, minH: 5 },
-    { i: 'clock', x: 8, y: 0, w: 4, h: 6, minW: 3, minH: 4 },
-    { i: 'actions', x: 8, y: 6, w: 4, h: 3, minW: 3, minH: 2 },
-    { i: 'quick-actions', x: 8, y: 9, w: 4, h: 5, minW: 3, minH: 3 },
+    { i: 'calendar', x: 0, y: 0, w: 4, h: 11, minW: 4, minH: 11 },
+    { i: 'today', x: 4, y: 0, w: 4, h: 4, minW: 4, minH: 4 },
+    { i: 'timers', x: 4, y: 4, w: 4, h: 7, minW: 4, minH: 7 },
+    { i: 'clock', x: 8, y: 0, w: 4, h: 7, minW: 4, maxW: 4, minH: 7, maxH: 7 },
+    { i: 'actions', x: 8, y: 7, w: 4, h: 3, minW: 4, minH: 3 },
+    { i: 'quick-actions', x: 8, y: 10, w: 4, h: 5, minW: 4, minH: 5 },
   ],
   md: [
-    { i: 'calendar', x: 0, y: 0, w: 5, h: 11, minW: 3, minH: 8 },
-    { i: 'today', x: 5, y: 0, w: 5, h: 4, minW: 3, minH: 3 },
-    { i: 'timers', x: 5, y: 4, w: 5, h: 7, minW: 3, minH: 5 },
-    { i: 'clock', x: 0, y: 11, w: 5, h: 6, minW: 3, minH: 4 },
-    { i: 'actions', x: 5, y: 11, w: 5, h: 3, minW: 3, minH: 2 },
-    { i: 'quick-actions', x: 5, y: 14, w: 5, h: 5, minW: 3, minH: 3 },
+    { i: 'calendar', x: 0, y: 0, w: 5, h: 11, minW: 5, minH: 11 },
+    { i: 'today', x: 5, y: 0, w: 5, h: 4, minW: 5, minH: 4 },
+    { i: 'timers', x: 5, y: 4, w: 5, h: 7, minW: 5, minH: 7 },
+    { i: 'clock', x: 0, y: 11, w: 5, h: 7, minW: 5, maxW: 5, minH: 7, maxH: 7 },
+    { i: 'actions', x: 5, y: 11, w: 5, h: 3, minW: 5, minH: 3 },
+    { i: 'quick-actions', x: 5, y: 14, w: 5, h: 5, minW: 5, minH: 5 },
   ],
   sm: [
-    { i: 'calendar', x: 0, y: 0, w: 6, h: 11, minW: 3, minH: 8 },
-    { i: 'today', x: 0, y: 11, w: 6, h: 4, minW: 3, minH: 3 },
-    { i: 'timers', x: 0, y: 15, w: 6, h: 7, minW: 3, minH: 5 },
-    { i: 'clock', x: 0, y: 22, w: 6, h: 6, minW: 3, minH: 4 },
-    { i: 'actions', x: 0, y: 28, w: 6, h: 3, minW: 3, minH: 2 },
-    { i: 'quick-actions', x: 0, y: 31, w: 6, h: 5, minW: 3, minH: 3 },
+    { i: 'calendar', x: 0, y: 0, w: 6, h: 11, minW: 6, minH: 11 },
+    { i: 'today', x: 0, y: 11, w: 6, h: 4, minW: 6, minH: 4 },
+    { i: 'timers', x: 0, y: 15, w: 6, h: 7, minW: 6, minH: 7 },
+    { i: 'clock', x: 0, y: 22, w: 6, h: 7, minW: 6, maxW: 6, minH: 7, maxH: 7 },
+    { i: 'actions', x: 0, y: 29, w: 6, h: 3, minW: 6, minH: 3 },
+    { i: 'quick-actions', x: 0, y: 32, w: 6, h: 5, minW: 6, minH: 5 },
   ],
+}
+
+function hasValidLayout(layout: unknown, ids: string[]) {
+  if (!Array.isArray(layout)) return false
+  const items = layout.filter((item): item is Layout[number] => item && typeof item.i === 'string')
+  if (items.length !== ids.length || new Set(items.map((item) => item.i)).size !== ids.length) return false
+  return items.every((item, index) => {
+    const itemRight = item.x + item.w
+    const itemBottom = item.y + item.h
+    return item.w > 0 && item.h > 0 && item.x >= 0 && item.y >= 0 && items.every((other, otherIndex) => {
+      if (index === otherIndex) return true
+      return itemRight <= other.x || other.x + other.w <= item.x || itemBottom <= other.y || other.y + other.h <= item.y
+    })
+  })
 }
 
 function parseLayouts(value?: string): Layouts {
   if (!value) return defaultLayouts
   try {
     const parsed = JSON.parse(value)
-    return parsed?.lg && parsed?.md && parsed?.sm ? parsed : defaultLayouts
+    const ids = defaultLayouts.lg?.map((item) => item.i) ?? []
+    return ids.length && ['lg', 'md', 'sm'].every((breakpoint) => hasValidLayout(parsed?.[breakpoint], ids)) ? parsed : defaultLayouts
   } catch {
     return defaultLayouts
   }
+}
+
+function WidgetFrame({
+  children,
+  editMode,
+  className = '',
+}: {
+  children: ReactNode
+  editMode: boolean
+  className?: string
+}) {
+  return (
+    <div className={`widget-shell widget-interactive ${className}`}>
+      {editMode && <div className="widget-handle" aria-label="Drag widget to reposition"><Grip aria-hidden="true" /></div>}
+      {children}
+    </div>
+  )
 }
 
 export function HomeScreen({
@@ -88,6 +127,10 @@ export function HomeScreen({
     setIsExpanded(true)
   }, [])
   const noop = useCallback(() => {}, [])
+  const handleLayoutChange = useCallback((_: Layout, nextLayouts: Layouts) => {
+    setLayouts(nextLayouts)
+    if (editMode) void updateUserPreferences({ dashboardLayout: JSON.stringify(nextLayouts) })
+  }, [editMode])
 
   if (isExpanded) return <DayView date={expandedDate} onBack={() => setIsExpanded(false)} />
 
@@ -110,35 +153,34 @@ export function HomeScreen({
             <span>Drag widgets by their handles and resize from the lower-right corner. Everything snaps to the grid.</span>
           </div>
         )}
-        <ResponsiveGridLayout
-          className="dashboard-layout"
+        <DashboardGrid
+          className={editMode ? 'dashboard-layout is-editing' : 'dashboard-layout'}
           layouts={layouts}
           breakpoints={{ lg: 1100, md: 768, sm: 0 }}
           cols={{ lg: 12, md: 10, sm: 6 }}
           rowHeight={28}
           margin={[24, 24]}
           containerPadding={[0, 0]}
-          compactType="vertical"
+          compactType="vertical" as const
+          preventCollision
           isDraggable={editMode}
           isResizable={editMode}
           draggableHandle=".widget-handle"
-          onLayoutChange={(_, nextLayouts) => setLayouts(nextLayouts)}
-          onDragStop={(_, nextLayout) => saveLayouts({ ...layouts, lg: nextLayout })}
-          onResizeStop={(_, nextLayout) => saveLayouts({ ...layouts, lg: nextLayout })}
+          onLayoutChange={handleLayoutChange}
         >
           <section key="calendar" className="dashboard-widget" aria-label="Mini calendar">
-            <div className="widget-shell"><MiniCalendar onDateSelect={handleCalendarDateSelect} selectedDate={selectedDate} /></div>
+            <WidgetFrame editMode={editMode}><MiniCalendar onDateSelect={editMode ? noop : handleCalendarDateSelect} selectedDate={selectedDate} /></WidgetFrame>
           </section>
           <section key="today" className="dashboard-widget" aria-label="Today">
-            <div className="widget-shell p-6"><p className="text-sm text-muted-foreground">Today</p><h2 className="mt-2 text-2xl font-bold">{formattedDate}</h2></div>
+            <WidgetFrame editMode={editMode} className="p-6"><p className="text-sm text-muted-foreground">Today</p><h2 className="mt-2 text-2xl font-bold">{formattedDate}</h2></WidgetFrame>
           </section>
           <section key="timers" className="dashboard-widget" aria-label="Active timers">
-            <div className="widget-shell p-4"><h3 className="mb-3 text-sm font-semibold">Active Timers</h3><ActiveTimersWidget date={today} onAddGoal={() => setShowAddGoalModal(true)} initialGoals={initialGoals} initialSessions={initialSessions} /></div>
+            <WidgetFrame editMode={editMode} className="p-4"><h3 className="mb-3 text-sm font-semibold">Active Timers</h3><ActiveTimersWidget date={today} onAddGoal={() => setShowAddGoalModal(true)} initialGoals={initialGoals} initialSessions={initialSessions} disabled={editMode} /></WidgetFrame>
           </section>
-          <section key="clock" className="dashboard-widget" aria-label="Clock"><div className="widget-shell flex h-full items-center justify-center p-6"><ClockWidget /></div></section>
-          <section key="actions" className="dashboard-widget" aria-label="Shortcuts"><div className="grid h-full grid-cols-2 gap-3"><Button className="h-full rounded-xl border border-border bg-card hover:bg-muted" variant="ghost" onClick={() => setShowRemindersModal(true)}><span className="flex flex-col items-center gap-1"><Bell /> <span className="text-xs">Reminders</span></span></Button><Button className="h-full rounded-xl border border-border bg-card hover:bg-muted" variant="ghost" onClick={() => setShowSettingsModal(true)}><span className="flex flex-col items-center gap-1"><Settings /> <span className="text-xs">Settings</span></span></Button></div></section>
-          <section key="quick-actions" className="dashboard-widget" aria-label="Quick actions"><div className="widget-shell h-full p-4"><h3 className="mb-3 text-sm font-semibold">Quick Actions</h3><div className="flex flex-col gap-2"><Button variant="outline" onClick={() => setShowAddEventModal(true)}>+ Add Event</Button><Button variant="outline" onClick={() => setShowAddGoalModal(true)}>+ Add Goal</Button></div></div></section>
-        </ResponsiveGridLayout>
+          <section key="clock" className="dashboard-widget" aria-label="Clock"><WidgetFrame editMode={editMode} className="flex items-center justify-center p-6"><ClockWidget disabled={editMode} /></WidgetFrame></section>
+          <section key="actions" className="dashboard-widget" aria-label="Shortcuts"><WidgetFrame editMode={editMode} className="grid grid-cols-2 gap-3"><Button disabled={editMode} className="h-full rounded-xl border border-border bg-card hover:bg-muted" variant="ghost" onClick={() => setShowRemindersModal(true)}><span className="flex flex-col items-center gap-1"><Bell /> <span className="text-xs">Reminders</span></span></Button><Button disabled={editMode} className="h-full rounded-xl border border-border bg-card hover:bg-muted" variant="ghost" onClick={() => setShowSettingsModal(true)}><span className="flex flex-col items-center gap-1"><Settings /> <span className="text-xs">Settings</span></span></Button></WidgetFrame></section>
+          <section key="quick-actions" className="dashboard-widget" aria-label="Quick actions"><WidgetFrame editMode={editMode} className="p-4"><h3 className="mb-3 text-sm font-semibold">Quick Actions</h3><div className="flex flex-col gap-2"><Button disabled={editMode} variant="outline" onClick={() => setShowAddEventModal(true)}>+ Add Event</Button><Button disabled={editMode} variant="outline" onClick={() => setShowAddGoalModal(true)}>+ Add Goal</Button></div></WidgetFrame></section>
+        </DashboardGrid>
       </main>
 
       <AddEventModal isOpen={showAddEventModal} onClose={() => setShowAddEventModal(false)} date={today} onEventCreated={noop} />

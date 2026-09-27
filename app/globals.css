@@ -166,6 +166,53 @@
   min-height: 720px;
 }
 
+.dashboard-layout.is-editing {
+  padding: 12px;
+  border: 1px dashed color-mix(in oklch, var(--primary) 35%, var(--border));
+  border-radius: var(--radius-xl);
+  background-image:
+    linear-gradient(to right, color-mix(in oklch, var(--primary) 12%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklch, var(--primary) 12%, transparent) 1px, transparent 1px);
+  background-size: calc((100% - 11 * 24px) / 12 + 24px) 28px;
+}
+
+.dashboard-widget {
+  min-width: 0;
+}
+
+.dashboard-widget .widget-interactive {
+  position: relative;
+}
+
+.dashboard-layout.is-editing .widget-interactive {
+  outline: 2px solid color-mix(in oklch, var(--primary) 32%, transparent);
+  outline-offset: -2px;
+}
+
+.widget-handle {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  z-index: 2;
+  display: flex;
+  transform: translateX(-50%);
+  cursor: grab;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  padding: 2px 8px;
+  color: var(--muted-foreground);
+  box-shadow: 0 2px 8px color-mix(in oklch, var(--foreground) 10%, transparent);
+}
+
+.widget-handle:active {
+  cursor: grabbing;
+}
+
+.dashboard-layout.is-editing .widget-interactive > :not(.widget-handle) {
+  pointer-events: none;
+}
+
 .dashboard-widget {
   min-width: 0;
 }

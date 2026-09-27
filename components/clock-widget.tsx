@@ -4,7 +4,7 @@ import { memo, useEffect, useState } from 'react'
 import { Clock, Clock12 } from 'lucide-react'
 import { useTheme } from '@/lib/theme-context'
 
-export const ClockWidget = memo(function ClockWidget() {
+export const ClockWidget = memo(function ClockWidget({ disabled = false }: { disabled?: boolean }) {
   const { clockType, setClockType } = useTheme()
   const [time, setTime] = useState<Date | null>(null)
 
@@ -65,7 +65,8 @@ export const ClockWidget = memo(function ClockWidget() {
       )}
       <button
         onClick={() => setClockType(clockType === 'digital' ? 'analog' : 'digital')}
-        className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-colors"
+        disabled={disabled}
+        className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-colors disabled:pointer-events-none disabled:opacity-50"
         title={`Switch to ${clockType === 'digital' ? 'analog' : 'digital'} clock`}
       >
         {clockType === 'digital' ? <Clock12 className="h-5 w-5" /> : <Clock className="h-5 w-5" />}
