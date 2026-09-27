@@ -187,13 +187,26 @@
 .dashboard-layout.is-editing .widget-interactive {
   outline: 2px solid color-mix(in oklch, var(--primary) 32%, transparent);
   outline-offset: -2px;
+  overflow: visible;
+}
+
+.dashboard-layout.is-editing .widget-interactive.widget-shell {
+  overflow: visible;
+}
+
+.dashboard-layout.is-editing .react-grid-item {
+  z-index: 1;
+}
+
+.dashboard-layout.is-editing .react-grid-item:has(.widget-handle) {
+  z-index: 5;
 }
 
 .widget-handle {
   position: absolute;
   top: -10px;
   left: -10px;
-  z-index: 2;
+  z-index: 20;
   display: flex;
   cursor: grab;
   border: 1px solid var(--border);
