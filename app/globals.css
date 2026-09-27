@@ -162,6 +162,34 @@
   }
 }
 
+.dashboard-layout {
+  min-height: 720px;
+}
+
+.dashboard-widget {
+  min-width: 0;
+}
+
+.widget-shell {
+  height: 100%;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: color-mix(in oklch, var(--card) 94%, var(--primary) 6%);
+  box-shadow: 0 10px 30px color-mix(in oklch, var(--foreground) 8%, transparent);
+}
+
+.react-grid-item.react-grid-placeholder {
+  border-radius: var(--radius-xl);
+  background: color-mix(in oklch, var(--primary) 25%, transparent);
+}
+
+@media (max-width: 767px) {
+  .dashboard-layout {
+    min-height: 1200px;
+  }
+}
+
 @layer utilities {
   @keyframes fadeIn {
     from {

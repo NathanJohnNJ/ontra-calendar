@@ -393,16 +393,17 @@ export async function getUserPreferences(userIdParam?: string) {
       createdAt: new Date(),
       updatedAt: new Date(),
     })
-    return { id, userId, primaryColor: '#3b82f6', clockType: 'digital' }
+  return { id, userId, primaryColor: '#3b82f6', clockType: 'digital', dashboardLayout: '[]' }
   }
-
+  
   return prefs[0]
 }
 
 export async function updateUserPreferences(data: {
   primaryColor?: string
   clockType?: string
-}) {
+  dashboardLayout?: string
+  }) {
   const userId = await getUserId()
   const prefs = await db
     .select()
