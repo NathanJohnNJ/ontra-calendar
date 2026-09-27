@@ -6,6 +6,8 @@ import dynamic from 'next/dynamic'
 import { MiniCalendar } from './mini-calendar'
 import { ClockWidget } from './clock-widget'
 import { ActiveTimersWidget, type TimerGoal } from './active-timers-widget'
+import { UpcomingEventsWidget, type UpcomingEvent } from './upcoming-events-widget'
+import { CurrentGoalsWidget, type CurrentGoal } from './current-goals-widget'
 import { useTheme } from '@/lib/theme-context'
 import { Bell, Check, Grip, Pencil, Settings } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -29,6 +31,8 @@ const defaultLayouts: Layouts = {
     { i: 'clock', x: 8, y: 0, w: 4, h: 6, minW: 4, maxW: 4, minH: 6, maxH: 6 },
     { i: 'actions', x: 8, y: 6, w: 4, h: 2, minW: 4, minH: 2 },
     { i: 'quick-actions', x: 8, y: 8, w: 4, h: 4, minW: 4, minH: 4 },
+    { i: 'upcoming', x: 0, y: 8, w: 4, h: 4, minW: 4, minH: 4 },
+    { i: 'goals', x: 4, y: 7, w: 4, h: 5, minW: 4, minH: 5 },
   ],
   md: [
     { i: 'calendar', x: 0, y: 0, w: 5, h: 8, minW: 5, minH: 8 },
@@ -37,6 +41,8 @@ const defaultLayouts: Layouts = {
     { i: 'clock', x: 0, y: 8, w: 5, h: 6, minW: 5, maxW: 5, minH: 6, maxH: 6 },
     { i: 'actions', x: 5, y: 8, w: 5, h: 2, minW: 5, minH: 2 },
     { i: 'quick-actions', x: 5, y: 10, w: 5, h: 4, minW: 5, minH: 4 },
+    { i: 'upcoming', x: 0, y: 14, w: 5, h: 4, minW: 5, minH: 4 },
+    { i: 'goals', x: 5, y: 14, w: 5, h: 4, minW: 5, minH: 4 },
   ],
   sm: [
     { i: 'calendar', x: 0, y: 0, w: 6, h: 8, minW: 6, minH: 8 },
@@ -45,6 +51,8 @@ const defaultLayouts: Layouts = {
     { i: 'clock', x: 0, y: 15, w: 6, h: 6, minW: 6, maxW: 6, minH: 6, maxH: 6 },
     { i: 'actions', x: 0, y: 21, w: 6, h: 2, minW: 6, minH: 2 },
     { i: 'quick-actions', x: 0, y: 23, w: 6, h: 4, minW: 6, minH: 4 },
+    { i: 'upcoming', x: 0, y: 27, w: 6, h: 4, minW: 6, minH: 4 },
+    { i: 'goals', x: 0, y: 31, w: 6, h: 4, minW: 6, minH: 4 },
   ],
 }
 
@@ -91,12 +99,16 @@ function WidgetFrame({
 }
 
 export function HomeScreen({
-  initialGoals = [],
-  initialSessions = [],
+initialGoals = [],
+    initialSessions = [],
+    initialEvents = [],
+    currentGoals = [],
   initialLayout,
 }: {
   initialGoals?: TimerGoal[]
   initialSessions?: TimerSession[]
+  initialEvents?: UpcomingEvent[]
+  currentGoals?: CurrentGoal[]
   initialLayout?: string
 }) {
   const today = useMemo(() => new Date().toISOString().split('T')[0], [])
@@ -181,6 +193,8 @@ export function HomeScreen({
           <section key="clock" className="dashboard-widget" aria-label="Clock"><WidgetFrame editMode={editMode} className="flex items-center justify-center p-6"><ClockWidget disabled={editMode} /></WidgetFrame></section>
           <section key="actions" className="dashboard-widget" aria-label="Shortcuts"><WidgetFrame editMode={editMode} className="grid grid-cols-2 gap-3"><Button disabled={editMode} className="h-full rounded-xl border border-border bg-card hover:bg-muted" variant="ghost" onClick={() => setShowRemindersModal(true)}><span className="flex flex-col items-center gap-1"><Bell /> <span className="text-xs">Reminders</span></span></Button><Button disabled={editMode} className="h-full rounded-xl border border-border bg-card hover:bg-muted" variant="ghost" onClick={() => setShowSettingsModal(true)}><span className="flex flex-col items-center gap-1"><Settings /> <span className="text-xs">Settings</span></span></Button></WidgetFrame></section>
           <section key="quick-actions" className="dashboard-widget" aria-label="Quick actions"><WidgetFrame editMode={editMode} className="p-4"><h3 className="mb-3 text-sm font-semibold">Quick Actions</h3><div className="flex flex-col gap-2"><Button disabled={editMode} variant="outline" onClick={() => setShowAddEventModal(true)}>+ Add Event</Button><Button disabled={editMode} variant="outline" onClick={() => setShowAddGoalModal(true)}>+ Add Goal</Button></div></WidgetFrame></section>
+          <section key="upcoming" className="dashboard-widget" aria-label="Upcoming events"><WidgetFrame editMode={editMode} className="p-4"><UpcomingEventsWidget events={initialEvents} /></WidgetFrame></section>
+          <section key="goals" className="dashboard-widget" aria-label="Current goals"><WidgetFrame editMode={editMode} className="p-4"><CurrentGoalsWidget goals={currentGoals} /></WidgetFrame></section>
         </DashboardGrid>
       </main>
 

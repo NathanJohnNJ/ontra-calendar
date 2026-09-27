@@ -1,7 +1,7 @@
 'use client'
 
 import { memo, useEffect, useState } from 'react'
-import { Clock, Clock12 } from 'lucide-react'
+import { Clock, Clock12, Blend } from 'lucide-react'
 import { useTheme } from '@/lib/theme-context'
 
 export const ClockWidget = memo(function ClockWidget({ disabled = false }: { disabled?: boolean }) {
@@ -31,11 +31,12 @@ export const ClockWidget = memo(function ClockWidget({ disabled = false }: { dis
 
   return (
     <div className="flex flex-col items-center gap-4">
-      {clockType === 'digital' ? (
+      {(clockType === 'digital' || clockType === 'both') && (
         <div className="text-5xl font-bold font-mono tracking-tighter">
           {String(hours).padStart(2, '0')}:{String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
         </div>
-      ) : (
+      )}
+      {(clockType === 'analog' || clockType === 'both') && (
         <div className="relative w-40 h-40 rounded-full border-4 border-primary bg-card flex items-center justify-center">
           {/* Hands rotate via CSS custom properties + will-change so updates are
               composited on the GPU instead of triggering layout/paint work. */}
@@ -64,12 +65,12 @@ export const ClockWidget = memo(function ClockWidget({ disabled = false }: { dis
         </div>
       )}
       <button
-        onClick={() => setClockType(clockType === 'digital' ? 'analog' : 'digital')}
+        onClick={() => setClockType(clockType === 'digital' ? 'analog' : clockType === 'analog' ? 'both' : 'digital')}
         disabled={disabled}
         className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-colors disabled:pointer-events-none disabled:opacity-50"
-        title={`Switch to ${clockType === 'digital' ? 'analog' : 'digital'} clock`}
+        title={`Switch to ${clockType === 'digital' ? 'analog' : clockType === 'analog' ? 'both clocks' : 'digital'} clock`}
       >
-        {clockType === 'digital' ? <Clock12 className="h-5 w-5" /> : <Clock className="h-5 w-5" />}
+        {clockType === 'digital' ? <Clock12 className="h-5 w-5" /> : clockType === 'analog' ? <Blend className="h-5 w-5" /> : <Clock className="h-5 w-5" />}
       </button>
     </div>
   )
