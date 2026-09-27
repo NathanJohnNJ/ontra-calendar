@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { headers } from 'next/headers'
-import { getUserPreferences, getGoalsForDate, getActiveTimerSessions } from '@/app/actions/calendar'
+import { getUserPreferences, getGoalsForDate, getActiveTimerSessions, getEventsForDateWithRecurring } from '@/app/actions/calendar'
 import { ThemeProvider } from '@/lib/theme-context'
 import { HomeScreen } from '@/components/home-screen'
 
@@ -16,10 +16,11 @@ export default async function Home() {
   // session -> prefs -> goals(+events)). Now the independent data fetches run
   // concurrently and reuse the already-resolved userId — no repeated auth calls.
   const today = new Date().toISOString().split('T')[0]
-  const [prefs, goalsData, openSessions] = await Promise.all([
+  const [prefs, goalsData, openSessions, eventsData] = await Promise.all([
     getUserPreferences(session.user.id),
     getGoalsForDate(today),
     getActiveTimerSessions(today),
+    getEventsForDateWithRecurring(today, session.user.id),
   ])
 
   return (
@@ -28,12 +29,14 @@ export default async function Home() {
       initialClockType={prefs.clockType}
     >
       <HomeScreen
-        initialGoals={goalsData.map((goal: any) => ({
+        initialSessions={openSessions}
+        initialEvents={eventsData}
+        currentGoals={goalsData.map((goal: any) => ({
           id: goal.id,
           eventId: goal.eventId,
           goalTimeMinutes: goal.goalTimeMinutes,
+          title: eventsData.find((event) => event.id === goal.eventId)?.title ?? 'Goal',
         }))}
-        initialSessions={openSessions}
         initialLayout={prefs.dashboardLayout}
       />
     </ThemeProvider>

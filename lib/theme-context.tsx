@@ -5,9 +5,9 @@ import { updateUserPreferences } from '@/app/actions/calendar'
 
 interface ThemeContextType {
   primaryColor: string
-  clockType: 'digital' | 'analog'
+  clockType: 'digital' | 'analog' | 'both'
   setPrimaryColor: (color: string) => Promise<void>
-  setClockType: (type: 'digital' | 'analog') => Promise<void>
+  setClockType: (type: 'digital' | 'analog' | 'both') => Promise<void>
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
@@ -22,8 +22,8 @@ export function ThemeProvider({
   initialClockType: string
 }) {
   const [primaryColor, setPrimaryColorState] = useState(initialColor)
-  const [clockType, setClockTypeState] = useState<'digital' | 'analog'>(
-    initialClockType === 'analog' ? 'analog' : 'digital',
+  const [clockType, setClockTypeState] = useState<'digital' | 'analog' | 'both'>(
+    initialClockType === 'analog' || initialClockType === 'both' ? initialClockType : 'digital',
   )
 
   useEffect(() => {
@@ -42,7 +42,7 @@ export function ThemeProvider({
     }
   }, [])
 
-  const setClockType = useCallback(async (type: 'digital' | 'analog') => {
+  const setClockType = useCallback(async (type: 'digital' | 'analog' | 'both') => {
     setClockTypeState(type)
     try {
       await updateUserPreferences({ clockType: type })
