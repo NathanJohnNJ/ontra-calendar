@@ -1,19 +1,32 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { memo } from 'react'
 
 interface AnalogStopwatchProps {
   seconds: number
   size?: number
 }
 
-export function AnalogStopwatch({ seconds, size = 48 }: AnalogStopwatchProps) {
-  const [rotation, setRotation] = useState(0)
+// Static tick marks computed once at module load — no per-render trig work.
+const TICKS = Array.from({ length: 12 }).map((_, i) => {
+  const angle = (i * 30) * (Math.PI / 180)
+  return {
+    x1: 50 + 42 * Math.sin(angle),
+    y1: 50 - 42 * Math.cos(angle),
+    x2: 50 + 45 * Math.sin(angle),
+    y2: 50 - 45 * Math.cos(angle),
+  }
+})
 
-  useEffect(() => {
-    // Calculate rotation: 6 degrees per second (360 / 60 = 6)
-    setRotation((seconds % 60) * 6)
-  }, [seconds])
+// Pure presentational component: rotation is derived directly from props.
+// (Previously it mirrored `seconds` into useState via useEffect, causing a
+// redundant extra render pass for every tick.) Memoized so paused timers skip
+// re-rendering entirely while other timers tick.
+export const AnalogStopwatch = memo(function AnalogStopwatch({
+  seconds,
+  size = 48,
+}: AnalogStopwatchProps) {
+  const rotation = (seconds % 60) * 6
 
   return (
     <div className="flex items-center justify-center">
@@ -42,31 +55,24 @@ export function AnalogStopwatch({ seconds, size = 48 }: AnalogStopwatchProps) {
             transform: `rotate(${rotation}deg)`,
             transformOrigin: '50px 50px',
             transition: 'transform 0.1s linear',
+            willChange: 'transform',
           }}
         />
 
         {/* Tick marks */}
-        {Array.from({ length: 12 }).map((_, i) => {
-          const angle = (i * 30) * (Math.PI / 180)
-          const x1 = 50 + 42 * Math.sin(angle)
-          const y1 = 50 - 42 * Math.cos(angle)
-          const x2 = 50 + 45 * Math.sin(angle)
-          const y2 = 50 - 45 * Math.cos(angle)
-
-          return (
-            <line
-              key={i}
-              x1={x1}
-              y1={y1}
-              x2={x2}
-              y2={y2}
-              stroke="currentColor"
-              strokeWidth="1"
-              opacity="0.5"
-            />
-          )
-        })}
+        {TICKS.map((t, i) => (
+          <line
+            key={i}
+            x1={t.x1}
+            y1={t.y1}
+            x2={t.x2}
+            y2={t.y2}
+            stroke="currentColor"
+            strokeWidth="1"
+            opacity="0.5"
+          />
+        ))}
       </svg>
     </div>
   )
-}
+})

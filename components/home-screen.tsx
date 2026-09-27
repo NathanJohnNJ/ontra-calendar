@@ -1,20 +1,31 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
+import dynamic from 'next/dynamic'
 import { MiniCalendar } from './mini-calendar'
 import { ClockWidget } from './clock-widget'
-import { AddEventModal } from './add-event-modal'
-import { AddGoalModal } from './add-goal-modal'
-import { RemindersModal } from './reminders-modal'
-import { SettingsModal } from './settings-modal'
-import { ActiveTimersWidget } from './active-timers-widget'
-import { DayView } from './day-view'
+import { ActiveTimersWidget, type TimerGoal } from './active-timers-widget'
 import { useTheme } from '@/lib/theme-context'
 import { Bell, Settings } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import type { TimerSession } from '@/app/db/types'
 
-export function HomeScreen() {
-  const today = new Date().toISOString().split('T')[0]
+// Code-split heavy, non-critical UI: modals and the expanded day view are only
+// fetched when the user actually opens them, shrinking the initial JS bundle.
+const AddEventModal = dynamic(() => import('./add-event-modal').then((m) => m.AddEventModal), { ssr: false })
+const AddGoalModal = dynamic(() => import('./add-goal-modal').then((m) => m.AddGoalModal), { ssr: false })
+const RemindersModal = dynamic(() => import('./reminders-modal').then((m) => m.RemindersModal), { ssr: false })
+const SettingsModal = dynamic(() => import('./settings-modal').then((m) => m.SettingsModal), { ssr: false })
+const DayView = dynamic(() => import('./day-view').then((m) => m.DayView), { ssr: false })
+
+export function HomeScreen({
+  initialGoals = [],
+  initialSessions = [],
+}: {
+  initialGoals?: TimerGoal[]
+  initialSessions?: TimerSession[]
+}) {
+  const today = useMemo(() => new Date().toISOString().split('T')[0], [])
   const [selectedDate, setSelectedDate] = useState(today)
   const [isExpanded, setIsExpanded] = useState(false)
   const [expandedDate, setExpandedDate] = useState(today)
@@ -24,21 +35,36 @@ export function HomeScreen() {
   const [showSettingsModal, setShowSettingsModal] = useState(false)
   const { primaryColor } = useTheme()
 
-  const formattedDate = new Date(today + 'T00:00:00Z').toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
+  const formattedDate = useMemo(
+    () =>
+      new Date(today + 'T00:00:00Z').toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      }),
+    [today],
+  )
 
-  const handleCalendarDateSelect = (date: string) => {
+  const handleCalendarDateSelect = useCallback((date: string) => {
     setSelectedDate(date)
     setExpandedDate(date)
     setIsExpanded(true)
-  }
+  }, [])
+
+  const handleBackFromDayView = useCallback(() => setIsExpanded(false), [])
+  const openAddEventModal = useCallback(() => setShowAddEventModal(true), [])
+  const closeAddEventModal = useCallback(() => setShowAddEventModal(false), [])
+  const openAddGoalModal = useCallback(() => setShowAddGoalModal(true), [])
+  const closeAddGoalModal = useCallback(() => setShowAddGoalModal(false), [])
+  const openRemindersModal = useCallback(() => setShowRemindersModal(true), [])
+  const closeRemindersModal = useCallback(() => setShowRemindersModal(false), [])
+  const openSettingsModal = useCallback(() => setShowSettingsModal(true), [])
+  const closeSettingsModal = useCallback(() => setShowSettingsModal(false), [])
+  const noop = useCallback(() => {}, [])
 
   if (isExpanded) {
-    return <DayView date={expandedDate} onBack={() => setIsExpanded(false)} />
+    return <DayView date={expandedDate} onBack={handleBackFromDayView} />
   }
 
   return (
@@ -89,7 +115,12 @@ export function HomeScreen() {
 
             <div className="bg-card rounded-lg border border-border p-4">
               <h3 className="text-sm font-semibold mb-3">Active Timers</h3>
-              <ActiveTimersWidget date={today} onAddGoal={() => setShowAddGoalModal(true)} />
+              <ActiveTimersWidget
+                date={today}
+                onAddGoal={openAddGoalModal}
+                initialGoals={initialGoals}
+                initialSessions={initialSessions}
+              />
             </div>
           </div>
 
@@ -105,7 +136,7 @@ export function HomeScreen() {
               <Button 
                 className="h-16 flex flex-col items-center justify-center rounded-lg border border-border bg-card hover:bg-muted" 
                 variant="ghost"
-                onClick={() => setShowRemindersModal(true)}
+                onClick={openRemindersModal}
                 title="View reminders"
               >
                 <Bell className="h-6 w-6 mb-1" />
@@ -114,7 +145,7 @@ export function HomeScreen() {
               <Button 
                 className="h-16 flex flex-col items-center justify-center rounded-lg border border-border bg-card hover:bg-muted" 
                 variant="ghost"
-                onClick={() => setShowSettingsModal(true)}
+                onClick={openSettingsModal}
                 title="Open settings"
               >
                 <Settings className="h-6 w-6 mb-1" />
@@ -129,14 +160,14 @@ export function HomeScreen() {
                 <Button 
                   className="w-full" 
                   variant="outline"
-                  onClick={() => setShowAddEventModal(true)}
+                  onClick={openAddEventModal}
                 >
                   + Add Event
                 </Button>
                 <Button 
                   className="w-full" 
                   variant="outline"
-                  onClick={() => setShowAddGoalModal(true)}
+                  onClick={openAddGoalModal}
                 >
                   + Add Goal
                 </Button>
@@ -148,26 +179,26 @@ export function HomeScreen() {
 
       <AddEventModal
         isOpen={showAddEventModal}
-        onClose={() => setShowAddEventModal(false)}
+        onClose={closeAddEventModal}
         date={today}
-        onEventCreated={() => {}}
+        onEventCreated={noop}
       />
 
       <AddGoalModal
         isOpen={showAddGoalModal}
-        onClose={() => setShowAddGoalModal(false)}
+        onClose={closeAddGoalModal}
         date={today}
-        onGoalCreated={() => {}}
+        onGoalCreated={noop}
       />
 
       <RemindersModal
         isOpen={showRemindersModal}
-        onClose={() => setShowRemindersModal(false)}
+        onClose={closeRemindersModal}
       />
 
       <SettingsModal
         isOpen={showSettingsModal}
-        onClose={() => setShowSettingsModal(false)}
+        onClose={closeSettingsModal}
       />
     </div>
   )
