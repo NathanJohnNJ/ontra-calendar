@@ -9,7 +9,7 @@ import {
   reminders,
   userPreferences,
 } from '@/lib/db/schema'
-import { eq, and, desc, gte, lte, or, isNull } from 'drizzle-orm'
+import { eq, and, desc, gte, lte, or, inArray } from 'drizzle-orm'
 import { headers } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { v4 as uuidv4 } from 'uuid'
@@ -65,20 +65,27 @@ export async function getEventsForDate(date: string) {
     .orderBy(events.startTime)
 }
 
-export async function getEventsForDateWithRecurring(date: string) {
-  const userId = await getUserId()
+export async function getEventsForDateWithRecurring(date: string, userIdParam?: string) {
+  const userId = userIdParam ?? (await getUserId())
 
-  // Get events specifically for this date
-  const directEvents = await db
-    .select()
-    .from(events)
-    .where(and(eq(events.userId, userId), eq(events.date, date)))
-
-  // Get all events that are recurring
-  const allEvents = await db
-    .select()
-    .from(events)
-    .where(eq(events.userId, userId))
+  // Independent queries run CONCURRENTLY instead of sequentially — this alone
+  // cuts the action's latency from (t1 + t2 + t3 + N*t4) to roughly max(t_i).
+  const [directEvents, allEvents, goalEventRows] = await Promise.all([
+    // Events specifically for this date
+    db
+      .select()
+      .from(events)
+      .where(and(eq(events.userId, userId), eq(events.date, date))),
+    // All events that are recurring
+    db.select().from(events).where(eq(events.userId, userId)),
+    // All goals joined to their event in ONE query (previously an N+1 loop
+    // that awaited one SELECT per goal).
+    db
+      .select({ goal: goals, event: events })
+      .from(goals)
+      .innerJoin(events, eq(events.id, goals.eventId))
+      .where(eq(goals.userId, userId)),
+  ])
 
   // Filter recurring events that apply to this date
   const recurringEventInstances = allEvents.filter((evt) => {
@@ -91,35 +98,16 @@ export async function getEventsForDateWithRecurring(date: string) {
     )
   })
 
-  // Get all goals (recurring and one-time) that belong to this user
-  const allGoals = await db
-    .select()
-    .from(goals)
-    .where(eq(goals.userId, userId))
-
-  // Get all events that have goals (to check recurring patterns)
-  const goalsWithEvents = await Promise.all(
-    allGoals.map(async (goal) => {
-      const eventData = await db
-        .select()
-        .from(events)
-        .where(eq(events.id, goal.eventId))
-        .limit(1)
-      return { goal, event: eventData[0] }
-    }),
-  )
-
   // Filter goals that apply to this date
-  const recurringGoalInstances = goalsWithEvents
-    .filter(({ goal, event }) => {
-      if (!event) return false
-      return goalAppliesToDate(
+  const recurringGoalInstances = goalEventRows
+    .filter(({ goal, event }) =>
+      goalAppliesToDate(
         goal.repeatFrequency as any,
         goal.daysOfWeek,
         event.date,
         date,
-      )
-    })
+      ),
+    )
     .map(({ event }) => event)
 
   // Combine direct events, recurring events, and recurring goal instances, remove duplicates
@@ -193,21 +181,20 @@ export async function getGoalsForEvent(eventId: string) {
 export async function getGoalsForDate(date: string) {
   const userId = await getUserId()
 
-  // Get all goal-based events for this date
-  const goalEvents = await getEventsForDateWithRecurring(date)
+  // Resolve auth ONCE and pass the userId down (previously getUserId ran again
+  // inside getEventsForDateWithRecurring).
+  const goalEvents = await getEventsForDateWithRecurring(date, userId)
   const goalEventIds = goalEvents.filter((e) => e.eventType === 'goal_based').map((e) => e.id)
 
   if (goalEventIds.length === 0) {
     return []
   }
 
-  // Get all goals for these events
-  const allGoals = await db
+  // Filter by event ids IN SQL instead of fetching every goal and filtering in JS.
+  return db
     .select()
     .from(goals)
-    .where(and(eq(goals.userId, userId)))
-
-  return allGoals.filter((goal) => goalEventIds.includes(goal.eventId))
+    .where(and(eq(goals.userId, userId), inArray(goals.eventId, goalEventIds)))
 }
 
 // Timer Session Actions
@@ -387,8 +374,8 @@ export async function dismissReminder(reminderId: string) {
 }
 
 // User Preferences Actions
-export async function getUserPreferences() {
-  const userId = await getUserId()
+export async function getUserPreferences(userIdParam?: string) {
+  const userId = userIdParam ?? (await getUserId())
   const prefs = await db
     .select()
     .from(userPreferences)
@@ -406,16 +393,17 @@ export async function getUserPreferences() {
       createdAt: new Date(),
       updatedAt: new Date(),
     })
-    return { id, userId, primaryColor: '#3b82f6', clockType: 'digital' }
+  return { id, userId, primaryColor: '#3b82f6', clockType: 'digital', dashboardLayout: '[]' }
   }
-
+  
   return prefs[0]
 }
 
 export async function updateUserPreferences(data: {
   primaryColor?: string
   clockType?: string
-}) {
+  dashboardLayout?: string
+  }) {
   const userId = await getUserId()
   const prefs = await db
     .select()

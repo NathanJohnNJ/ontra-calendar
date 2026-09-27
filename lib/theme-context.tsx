@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { updateUserPreferences } from '@/app/actions/calendar'
 
 interface ThemeContextType {
@@ -32,26 +32,35 @@ export function ThemeProvider({
     root.style.setProperty('--primary-foreground', '#ffffff')
   }, [primaryColor])
 
-  const setPrimaryColor = async (color: string) => {
+  // Stable callback identities...
+  const setPrimaryColor = useCallback(async (color: string) => {
     setPrimaryColorState(color)
     try {
       await updateUserPreferences({ primaryColor: color })
     } catch (error) {
       console.error('Failed to update theme:', error)
     }
-  }
+  }, [])
 
-  const setClockType = async (type: 'digital' | 'analog') => {
+  const setClockType = useCallback(async (type: 'digital' | 'analog') => {
     setClockTypeState(type)
     try {
       await updateUserPreferences({ clockType: type })
     } catch (error) {
       console.error('Failed to update clock type:', error)
     }
-  }
+  }, [])
+
+  // ...and a memoized context value. Without this, every provider render created
+  // a brand-new object, re-rendering EVERY consumer (clock, modals, header...)
+  // even when nothing they use had changed.
+  const value = useMemo(
+    () => ({ primaryColor, clockType, setPrimaryColor, setClockType }),
+    [primaryColor, clockType, setPrimaryColor, setClockType],
+  )
 
   return (
-    <ThemeContext.Provider value={{ primaryColor, clockType, setPrimaryColor, setClockType }}>
+    <ThemeContext.Provider value={value}>
       {children}
     </ThemeContext.Provider>
   )

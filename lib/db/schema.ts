@@ -123,6 +123,7 @@ export const userPreferences = pgTable('userPreferences', {
   userId: text('userId').notNull().unique(),
   primaryColor: text('primaryColor').notNull().default('#3b82f6'),
   clockType: text('clockType').notNull().default('digital'),
+  dashboardLayout: text('dashboardLayout').notNull().default('[]'),
   createdAt: timestamp('createdAt').notNull().defaultNow(),
   updatedAt: timestamp('updatedAt').notNull().defaultNow(),
 })

@@ -1,134 +1,174 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import { Play, Plus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { AnalogStopwatch } from './analog-stopwatch'
-import { getGoalsForDate, getEventsForDateWithRecurring, startTimerSession, stopTimerSession } from '@/app/actions/calendar'
+import { getGoalsForDate, startTimerSession, stopTimerSession } from '@/app/actions/calendar'
+import type { TimerSession as DbTimerSession } from '@/app/db/types'
 
-interface Goal {
+export interface TimerGoal {
   id: string
   title?: string
   eventId: string
   goalTimeMinutes: number
 }
 
-interface TimerSession {
-  id: string
+interface RuntimeSession {
+  dbSessionId: string | null
   goalId: string
-  elapsedSeconds: number
   isRunning: boolean
+  /** Epoch ms of the most recent "start" tick (null while paused). */
+  startedAt: number | null
+  /** Seconds accumulated across previous run segments. */
+  baseSeconds: number
 }
 
 interface ActiveTimersWidgetProps {
   date: string
   onAddGoal?: () => void
+  /** Pre-computed by the server so the first paint shows real timers. */
+  initialGoals?: TimerGoal[]
+  /** Open DB sessions for the date; elapsed time is derived from their timestamps. */
+  initialSessions?: DbTimerSession[]
+  disabled?: boolean
 }
 
-export function ActiveTimersWidget({ date, onAddGoal }: ActiveTimersWidgetProps) {
-  const [goals, setGoals] = useState<Goal[]>([])
-  const [goalsWithEvents, setGoalsWithEvents] = useState<Map<string, any>>(new Map())
-  const [timerSessions, setTimerSessions] = useState<Map<string, TimerSession>>(new Map())
-  const [isLoading, setIsLoading] = useState(true)
-  const [elapsedTime, setElapsedTime] = useState<Map<string, number>>(new Map())
+const EMPTY_MAP = new Map<string, RuntimeSession>()
 
+function buildRuntimeState(
+  goals: TimerGoal[],
+  openDbSessions?: DbTimerSession[],
+): Map<string, RuntimeSession> {
+  const sessions = new Map<string, RuntimeSession>()
+  const byGoal = new Map((openDbSessions ?? []).map((s) => [s.goalId, s]))
+
+  for (const goal of goals) {
+    const dbSession = byGoal.get(goal.id)
+    if (dbSession) {
+      // Resume a server-side running session: derive elapsed from its start timestamp.
+      sessions.set(goal.id, {
+        dbSessionId: dbSession.id,
+        goalId: goal.id,
+        isRunning: true,
+        startedAt: dbSession.sessionStart.getTime(),
+        baseSeconds: 0,
+      })
+    } else {
+      sessions.set(goal.id, {
+        dbSessionId: null,
+        goalId: goal.id,
+        isRunning: false,
+        startedAt: null,
+        baseSeconds: 0,
+      })
+    }
+  }
+  return sessions
+}
+
+export const ActiveTimersWidget = memo(function ActiveTimersWidget({
+  date,
+  onAddGoal,
+  initialGoals = [],
+  initialSessions = [],
+  disabled = false,
+}: ActiveTimersWidgetProps) {
+  const [goals, setGoals] = useState<TimerGoal[]>(initialGoals)
+  const [sessions, setSessions] = useState<Map<string, RuntimeSession>>(
+    initialGoals.length > 0 ? buildRuntimeState(initialGoals, initialSessions) : EMPTY_MAP,
+  )
+  const [isLoading, setIsLoading] = useState(initialGoals.length === 0)
+  // Single per-second "tick". Elapsed time is DERIVED from timestamps instead of
+  // being incremented inside a second Map — one tiny state update per second drives
+  // the whole widget, with no Map churn and no interval recreation each tick.
+  const [, setTick] = useState(0)
+  const sessionsRef = useRef(sessions)
+  sessionsRef.current = sessions
+  const eventByGoalRef = useRef(new Map(initialGoals.map((g) => [g.id, g.eventId])))
+
+  // Mount once with server-provided data (no loading flash); only refetch when
+  // the visible date actually changes.
   useEffect(() => {
-    loadGoals()
+    let cancelled = false
+    async function load() {
+      setIsLoading(true)
+      try {
+        const goalsData = await getGoalsForDate(date)
+        if (cancelled) return
+        eventByGoalRef.current = new Map(goalsData.map((g) => [g.id, g.eventId]))
+        setGoals(goalsData)
+        setSessions(buildRuntimeState(goalsData))
+      } catch (error) {
+        console.error('Failed to load goals:', error)
+      } finally {
+        if (!cancelled) setIsLoading(false)
+      }
+    }
+    // Skip the initial fetch when the server already handed us the data.
+    if (initialGoals.length === 0) {
+      load()
+    }
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date])
 
+  // The interval only exists while at least one timer is running, and it is
+  // created exactly once per start/stop transition (not every second).
+  const anyRunning = [...sessions.values()].some((s) => s.isRunning)
   useEffect(() => {
-    const interval = setInterval(() => {
-      // Update elapsed time for running timers
-      setElapsedTime((prev) => {
-        const updated = new Map(prev)
-        timerSessions.forEach((session) => {
-          if (session.isRunning) {
-            updated.set(session.goalId, (updated.get(session.goalId) || 0) + 1)
-          }
-        })
-        return updated
-      })
-    }, 1000)
-
+    if (!anyRunning) return
+    const interval = setInterval(() => setTick((t) => t + 1), 1000)
     return () => clearInterval(interval)
-  }, [timerSessions])
+  }, [anyRunning])
 
-  const loadGoals = async () => {
-    setIsLoading(true)
+  const handleStartTimer = useCallback(async (goalId: string) => {
+    const prev = sessionsRef.current.get(goalId)
+    if (!prev || prev.isRunning) return
+    // Optimistic local update first — UI responds instantly.
+    const updated = new Map(sessionsRef.current)
+    updated.set(goalId, { ...prev, isRunning: true, startedAt: Date.now() })
+    setSessions(updated)
     try {
-      const goalsData = await getGoalsForDate(date)
-      const eventsData = await getEventsForDateWithRecurring(date)
-
-      // Create a map of event titles by event ID
-      const eventMap = new Map(eventsData.map((e: any) => [e.id, e]))
-
-      // Create goal objects with event information
-      const goalsWithTitles: Goal[] = goalsData.map((goal: any) => ({
-        id: goal.id,
-        eventId: goal.eventId,
-        goalTimeMinutes: goal.goalTimeMinutes,
-        title: eventMap.get(goal.eventId)?.title || 'Untitled Goal',
-      }))
-
-      setGoals(goalsWithTitles)
-      setGoalsWithEvents(eventMap)
-
-      // Initialize timer sessions for all goals (even at 0 seconds)
-      const sessions = new Map<string, TimerSession>()
-      goalsWithTitles.forEach((goal) => {
-        sessions.set(goal.id, {
-          id: `${goal.id}-session`,
-          goalId: goal.id,
-          elapsedSeconds: 0,
-          isRunning: false,
-        })
-      })
-      setTimerSessions(sessions)
+      const sessionId = await startTimerSession(goalId, eventByGoalRef.current.get(goalId) ?? goalId)
+      const after = new Map(sessionsRef.current)
+      const cur = after.get(goalId)
+      if (cur) after.set(goalId, { ...cur, dbSessionId: sessionId })
+      setSessions(after)
     } catch (error) {
-      console.error('Failed to load goals:', error)
-    } finally {
-      setIsLoading(false)
+      console.error('Failed to persist timer session:', error)
     }
-  }
+  }, [])
 
-  const handleStartTimer = async (goalId: string) => {
-    try {
-      const session = timerSessions.get(goalId)
-      if (session) {
-        // Update session to running
-        const updated = new Map(timerSessions)
-        updated.set(goalId, { ...session, isRunning: true })
-        setTimerSessions(updated)
+  const handleStopTimer = useCallback(async (goalId: string) => {
+    const prev = sessionsRef.current.get(goalId)
+    if (!prev || !prev.isRunning) return
+    // Freeze the current segment into baseSeconds synchronously.
+    const segmentSeconds = prev.startedAt
+      ? Math.floor((Date.now() - prev.startedAt) / 1000)
+      : 0
+    const updated = new Map(sessionsRef.current)
+    updated.set(goalId, {
+      ...prev,
+      isRunning: false,
+      startedAt: null,
+      baseSeconds: prev.baseSeconds + segmentSeconds,
+    })
+    setSessions(updated)
+    if (prev.dbSessionId) {
+      try {
+        await stopTimerSession(prev.dbSessionId)
+        const after = new Map(sessionsRef.current)
+        const cur = after.get(goalId)
+        if (cur) after.set(goalId, { ...cur, dbSessionId: null })
+        setSessions(after)
+      } catch (error) {
+        console.error('Failed to stop timer session:', error)
       }
-    } catch (error) {
-      console.error('Failed to start timer:', error)
     }
-  }
-
-  const handleStopTimer = async (goalId: string) => {
-    try {
-      const session = timerSessions.get(goalId)
-      if (session) {
-        // Update session to stopped
-        const updated = new Map(timerSessions)
-        updated.set(goalId, { ...session, isRunning: false })
-        setTimerSessions(updated)
-      }
-    } catch (error) {
-      console.error('Failed to stop timer:', error)
-    }
-  }
-
-  const formatTime = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600)
-    const minutes = Math.floor((seconds % 3600) / 60)
-    const secs = seconds % 60
-
-    if (hours > 0) {
-      return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
-    }
-    return `${minutes}:${String(secs).padStart(2, '0')}`
-  }
+  }, [])
 
   if (isLoading) {
     return <p className="text-sm text-muted-foreground">Loading timers...</p>
@@ -138,42 +178,16 @@ export function ActiveTimersWidget({ date, onAddGoal }: ActiveTimersWidgetProps)
     <div className="space-y-3">
       <div className="grid grid-cols-4 gap-2">
         {/* Timer widgets for each goal */}
-        {goals.map((goal) => {
-          const session = timerSessions.get(goal.id)
-          const elapsed = elapsedTime.get(goal.id) || session?.elapsedSeconds || 0
-
-          return (
-            <div
-              key={goal.id}
-              className="bg-card rounded-lg border border-border p-2 flex flex-col items-center justify-center gap-1"
-            >
-              <AnalogStopwatch seconds={elapsed} size={40} />
-              <div className="text-center min-w-0">
-                <p className="text-xs font-mono">{formatTime(elapsed)}</p>
-                <p className="text-xs text-muted-foreground truncate">{goal.title || 'Goal'}</p>
-              </div>
-              {!session?.isRunning ? (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-6 w-6 p-0"
-                  onClick={() => handleStartTimer(goal.id)}
-                >
-                  <Play className="h-3 w-3" />
-                </Button>
-              ) : (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-6 w-6 p-0"
-                  onClick={() => handleStopTimer(goal.id)}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              )}
-            </div>
-          )
-        })}
+        {goals.map((goal) => (
+          <TimerCard
+            key={goal.id}
+            goal={goal}
+            session={sessions.get(goal.id)}
+            onStart={handleStartTimer}
+  onStop={handleStopTimer}
+  disabled={disabled}
+  />
+        ))}
 
         {/* Add new goal button */}
         <button
@@ -188,4 +202,71 @@ export function ActiveTimersWidget({ date, onAddGoal }: ActiveTimersWidgetProps)
       </div>
     </div>
   )
+})
+
+function formatTime(seconds: number) {
+  const hours = Math.floor(seconds / 3600)
+  const minutes = Math.floor((seconds % 3600) / 60)
+  const secs = seconds % 60
+
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
+  }
+  return `${minutes}:${String(secs).padStart(2, '0')}`
 }
+
+function elapsedOf(session: RuntimeSession | undefined): number {
+  if (!session) return 0
+  if (session.isRunning && session.startedAt !== null) {
+    return session.baseSeconds + Math.floor((Date.now() - session.startedAt) / 1000)
+  }
+  return session.baseSeconds
+}
+
+// Memoized row: only re-renders when its own goal/session reference changes.
+const TimerCard = memo(function TimerCard({
+  goal,
+  session,
+  onStart,
+  onStop,
+  disabled = false,
+}: {
+  goal: TimerGoal
+  session: RuntimeSession | undefined
+  onStart: (goalId: string) => void
+  onStop: (goalId: string) => void
+  disabled?: boolean
+}) {
+  const elapsed = elapsedOf(session)
+
+  return (
+    <div className="bg-card rounded-lg border border-border p-2 flex flex-col items-center justify-center gap-1">
+      <AnalogStopwatch seconds={elapsed} size={40} />
+      <div className="text-center min-w-0">
+        <p className="text-xs font-mono">{formatTime(elapsed)}</p>
+        <p className="text-xs text-muted-foreground truncate">{goal.title || 'Goal'}</p>
+      </div>
+      {!session?.isRunning ? (
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-6 w-6 p-0"
+  onClick={() => onStart(goal.id)}
+  disabled={disabled}
+  >
+          <Play className="h-3 w-3" />
+        </Button>
+      ) : (
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-6 w-6 p-0"
+  onClick={() => onStop(goal.id)}
+  disabled={disabled}
+  >
+          <X className="h-3 w-3" />
+        </Button>
+      )}
+    </div>
+  )
+})
