@@ -8,11 +8,18 @@ import { EventTimerList } from './event-timer-list'
 
 interface Event {
   id: string
+  userId: string
   title: string
-  eventType: string
-  startTime?: string
-  endTime?: string
-  description?: string
+  description: string | null
+  date: string
+  startTime: string | null
+  endTime: string | null
+  eventType: 'regular' | 'goal_based'
+  color: string | null
+  repeatFrequency: string
+  daysOfWeek: string
+  createdAt: Date
+  updatedAt: Date
 }
 
 interface DayViewProps {
