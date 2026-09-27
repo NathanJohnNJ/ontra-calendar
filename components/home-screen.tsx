@@ -23,28 +23,28 @@ import 'react-grid-layout/css/styles.css'
 
 const defaultLayouts: Layouts = {
   lg: [
-    { i: 'calendar', x: 0, y: 0, w: 4, h: 11, minW: 4, minH: 11 },
-    { i: 'today', x: 4, y: 0, w: 4, h: 4, minW: 4, minH: 4 },
-    { i: 'timers', x: 4, y: 4, w: 4, h: 7, minW: 4, minH: 7 },
-    { i: 'clock', x: 8, y: 0, w: 4, h: 7, minW: 4, maxW: 4, minH: 7, maxH: 7 },
-    { i: 'actions', x: 8, y: 7, w: 4, h: 3, minW: 4, minH: 3 },
-    { i: 'quick-actions', x: 8, y: 10, w: 4, h: 5, minW: 4, minH: 5 },
+    { i: 'calendar', x: 0, y: 0, w: 4, h: 8, minW: 4, minH: 8 },
+    { i: 'today', x: 4, y: 0, w: 4, h: 3, minW: 4, minH: 3 },
+    { i: 'timers', x: 4, y: 3, w: 4, h: 4, minW: 4, minH: 4 },
+    { i: 'clock', x: 8, y: 0, w: 4, h: 6, minW: 4, maxW: 4, minH: 6, maxH: 6 },
+    { i: 'actions', x: 8, y: 6, w: 4, h: 2, minW: 4, minH: 2 },
+    { i: 'quick-actions', x: 8, y: 8, w: 4, h: 4, minW: 4, minH: 4 },
   ],
   md: [
-    { i: 'calendar', x: 0, y: 0, w: 5, h: 11, minW: 5, minH: 11 },
-    { i: 'today', x: 5, y: 0, w: 5, h: 4, minW: 5, minH: 4 },
-    { i: 'timers', x: 5, y: 4, w: 5, h: 7, minW: 5, minH: 7 },
-    { i: 'clock', x: 0, y: 11, w: 5, h: 7, minW: 5, maxW: 5, minH: 7, maxH: 7 },
-    { i: 'actions', x: 5, y: 11, w: 5, h: 3, minW: 5, minH: 3 },
-    { i: 'quick-actions', x: 5, y: 14, w: 5, h: 5, minW: 5, minH: 5 },
+    { i: 'calendar', x: 0, y: 0, w: 5, h: 8, minW: 5, minH: 8 },
+    { i: 'today', x: 5, y: 0, w: 5, h: 3, minW: 5, minH: 3 },
+    { i: 'timers', x: 5, y: 3, w: 5, h: 4, minW: 5, minH: 4 },
+    { i: 'clock', x: 0, y: 8, w: 5, h: 6, minW: 5, maxW: 5, minH: 6, maxH: 6 },
+    { i: 'actions', x: 5, y: 8, w: 5, h: 2, minW: 5, minH: 2 },
+    { i: 'quick-actions', x: 5, y: 10, w: 5, h: 4, minW: 5, minH: 4 },
   ],
   sm: [
-    { i: 'calendar', x: 0, y: 0, w: 6, h: 11, minW: 6, minH: 11 },
-    { i: 'today', x: 0, y: 11, w: 6, h: 4, minW: 6, minH: 4 },
-    { i: 'timers', x: 0, y: 15, w: 6, h: 7, minW: 6, minH: 7 },
-    { i: 'clock', x: 0, y: 22, w: 6, h: 7, minW: 6, maxW: 6, minH: 7, maxH: 7 },
-    { i: 'actions', x: 0, y: 29, w: 6, h: 3, minW: 6, minH: 3 },
-    { i: 'quick-actions', x: 0, y: 32, w: 6, h: 5, minW: 6, minH: 5 },
+    { i: 'calendar', x: 0, y: 0, w: 6, h: 8, minW: 6, minH: 8 },
+    { i: 'today', x: 0, y: 8, w: 6, h: 3, minW: 6, minH: 3 },
+    { i: 'timers', x: 0, y: 11, w: 6, h: 4, minW: 6, minH: 4 },
+    { i: 'clock', x: 0, y: 15, w: 6, h: 6, minW: 6, maxW: 6, minH: 6, maxH: 6 },
+    { i: 'actions', x: 0, y: 21, w: 6, h: 2, minW: 6, minH: 2 },
+    { i: 'quick-actions', x: 0, y: 23, w: 6, h: 4, minW: 6, minH: 4 },
   ],
 }
 
@@ -162,7 +162,8 @@ export function HomeScreen({
           margin={[24, 24]}
           containerPadding={[0, 0]}
           compactType="vertical" as const
-          preventCollision
+          preventCollision={false}
+          allowOverlap={false}
           isDraggable={editMode}
           isResizable={editMode}
           draggableHandle=".widget-handle"

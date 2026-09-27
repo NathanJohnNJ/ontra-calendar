@@ -191,16 +191,15 @@
 
 .widget-handle {
   position: absolute;
-  top: 8px;
-  left: 50%;
+  top: -10px;
+  left: -10px;
   z-index: 2;
   display: flex;
-  transform: translateX(-50%);
   cursor: grab;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--card);
-  padding: 2px 8px;
+  padding: 2px 6px;
   color: var(--muted-foreground);
   box-shadow: 0 2px 8px color-mix(in oklch, var(--foreground) 10%, transparent);
 }
