@@ -305,8 +305,14 @@ export async function createTask(data: { title: string; description?: string; li
 export async function getTasks() {
   const userId = await getUserId()
   const rows = await db.select().from(tasks).where(eq(tasks.userId, userId)).orderBy(desc(tasks.createdAt))
-  const children = await db.select().from(taskSubtasks).where(eq(taskSubtasks.taskId, rows.length ? rows[0].id : '__none__'))
-  return rows.map((task) => ({ ...task, links: JSON.parse(task.links || '[]').join('\\n'), subtasks: task.id === rows[0]?.id ? children : [] }))
+  const children = rows.length
+    ? await db.select().from(taskSubtasks).where(inArray(taskSubtasks.taskId, rows.map((task) => task.id)))
+    : []
+  return rows.map((task) => ({
+    ...task,
+    links: JSON.parse(task.links || '[]').join('\\n'),
+    subtasks: children.filter((child) => child.taskId === task.id),
+  }))
 }
 
 export async function toggleTask(id: string, completed: boolean) {
