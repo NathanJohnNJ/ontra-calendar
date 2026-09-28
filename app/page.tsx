@@ -31,7 +31,7 @@ export default async function Home() {
     >
       <HomeScreen
         initialSessions={openSessions}
-        initialEvents={eventsData}
+        initialEvents={eventsData.filter((event) => event.eventType !== 'goal_based')}
         currentGoals={goalsData.map((goal: any) => ({
           id: goal.id,
           eventId: goal.eventId,
