@@ -231,7 +231,7 @@
 
 .widget-shell {
   height: 100%;
-  overflow: auto;
+  overflow: hidden;
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
   background: color-mix(in oklch, var(--card) 94%, var(--primary) 6%);
