@@ -9,7 +9,7 @@ import {
   reminders,
   userPreferences,
 } from '@/lib/db/schema'
-import { eq, and, desc, gte, lte, or, inArray } from 'drizzle-orm'
+import { eq, and, desc, gte, lte, or, inArray, isNull } from 'drizzle-orm'
 import { headers } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { v4 as uuidv4 } from 'uuid'
