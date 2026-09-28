@@ -123,11 +123,13 @@ function WidgetFrame({
 }) {
   return (
     <div className={`widget-shell widget-interactive ${!visible ? (editMode ? 'widget-is-hidden' : 'widget-is-removed') : ''} ${className}`}>
-      {editMode && <div className="widget-handle" aria-label="Drag widget to reposition"><Grip aria-hidden="true" /></div>}
       {editMode && (
-        <label className="widget-visibility-toggle" aria-label={`${visible ? 'Hide' : 'Show'} ${widgetId} widget`}>
-          <input type="checkbox" checked={visible} onChange={(event) => onVisibilityChange(event.target.checked)} />
-        </label>
+        <div className="widget-edit-controls">
+          <div className="widget-handle" aria-label="Drag widget to reposition"><Grip aria-hidden="true" /></div>
+          <label className="widget-visibility-toggle" aria-label={`${visible ? 'Hide' : 'Show'} ${widgetId} widget`}>
+            <input type="checkbox" checked={visible} onChange={(event) => onVisibilityChange(event.target.checked)} />
+          </label>
+        </div>
       )}
       {children}
     </div>
