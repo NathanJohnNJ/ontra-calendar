@@ -118,6 +118,32 @@ export const reminders = pgTable('reminders', {
   createdAt: timestamp('createdAt').notNull().defaultNow(),
 })
 
+export const tasks = pgTable('tasks', {
+  id: text('id').primaryKey(),
+  userId: text('userId').notNull(),
+  title: text('title').notNull(),
+  description: text('description'),
+  links: text('links').notNull().default('[]'),
+  notes: text('notes'),
+  goalDate: date('goalDate'),
+  goalDurationMinutes: integer('goalDurationMinutes'),
+  repeatFrequency: text('repeatFrequency').notNull().default('once'),
+  daysOfWeek: text('daysOfWeek').notNull().default('[]'),
+  completed: boolean('completed').notNull().default(false),
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+  updatedAt: timestamp('updatedAt').notNull().defaultNow(),
+})
+
+export const taskSubtasks = pgTable('task_subtasks', {
+  id: text('id').primaryKey(),
+  taskId: text('taskId').notNull(),
+  title: text('title').notNull(),
+  description: text('description'),
+  priority: text('priority').notNull().default('med'),
+  completed: boolean('completed').notNull().default(false),
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+})
+
 export const userPreferences = pgTable('userPreferences', {
   id: text('id').primaryKey(),
   userId: text('userId').notNull().unique(),

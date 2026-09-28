@@ -8,6 +8,7 @@ import { ClockWidget } from './clock-widget'
 import { ActiveTimersWidget, type TimerGoal } from './active-timers-widget'
 import { UpcomingEventsWidget, type UpcomingEvent } from './upcoming-events-widget'
 import { CurrentGoalsWidget, type CurrentGoal } from './current-goals-widget'
+import { TasksWidget } from './tasks-widget'
 import { useTheme } from '@/lib/theme-context'
 import { Bell, Check, Grip, Pencil, Settings } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -103,12 +104,14 @@ initialGoals = [],
     initialSessions = [],
     initialEvents = [],
     currentGoals = [],
+  initialTasks = [],
   initialLayout,
 }: {
   initialGoals?: TimerGoal[]
   initialSessions?: TimerSession[]
   initialEvents?: UpcomingEvent[]
   currentGoals?: CurrentGoal[]
+  initialTasks?: any[]
   initialLayout?: string
 }) {
   const today = useMemo(() => new Date().toISOString().split('T')[0], [])
@@ -192,7 +195,7 @@ initialGoals = [],
           </section>
           <section key="clock" className="dashboard-widget" aria-label="Clock"><WidgetFrame editMode={editMode} className="flex items-center justify-center p-6"><ClockWidget disabled={editMode} /></WidgetFrame></section>
           <section key="actions" className="dashboard-widget" aria-label="Shortcuts"><WidgetFrame editMode={editMode} className="grid grid-cols-2 gap-3"><Button disabled={editMode} className="h-full rounded-xl border border-border bg-card hover:bg-muted" variant="ghost" onClick={() => setShowRemindersModal(true)}><span className="flex flex-col items-center gap-1"><Bell /> <span className="text-xs">Reminders</span></span></Button><Button disabled={editMode} className="h-full rounded-xl border border-border bg-card hover:bg-muted" variant="ghost" onClick={() => setShowSettingsModal(true)}><span className="flex flex-col items-center gap-1"><Settings /> <span className="text-xs">Settings</span></span></Button></WidgetFrame></section>
-          <section key="quick-actions" className="dashboard-widget" aria-label="Quick actions"><WidgetFrame editMode={editMode} className="p-4"><h3 className="mb-3 text-sm font-semibold">Quick Actions</h3><div className="flex flex-col gap-2"><Button disabled={editMode} variant="outline" onClick={() => setShowAddEventModal(true)}>+ Add Event</Button><Button disabled={editMode} variant="outline" onClick={() => setShowAddGoalModal(true)}>+ Add Goal</Button></div></WidgetFrame></section>
+          <section key="quick-actions" className="dashboard-widget" aria-label="Quick actions"><WidgetFrame editMode={editMode} className="p-4"><h3 className="mb-3 text-sm font-semibold">Quick Actions</h3><div className="flex flex-col gap-2"><Button disabled={editMode} variant="outline" onClick={() => setShowAddEventModal(true)}>+ Add Event</Button><Button disabled={editMode} variant="outline" onClick={() => setShowAddGoalModal(true)}>+ Add Goal</Button><div className="mt-4 border-t border-border pt-4"><TasksWidget initialTasks={initialTasks} /></div></div></WidgetFrame></section>
           <section key="upcoming" className="dashboard-widget" aria-label="Upcoming events"><WidgetFrame editMode={editMode} className="p-4"><UpcomingEventsWidget events={initialEvents} /></WidgetFrame></section>
           <section key="goals" className="dashboard-widget" aria-label="Current goals"><WidgetFrame editMode={editMode} className="p-4"><CurrentGoalsWidget goals={currentGoals} /></WidgetFrame></section>
         </DashboardGrid>
