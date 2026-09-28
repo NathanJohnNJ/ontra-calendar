@@ -74,41 +74,62 @@ function hasValidLayout(layout: unknown, ids: string[]) {
   })
 }
 
-function parseLayouts(value?: string): Layouts {
-  if (!value) return defaultLayouts
+const widgetIds = ['calendar', 'today', 'timers', 'clock', 'actions', 'quick-actions', 'tasks', 'upcoming', 'goals'] as const
+type WidgetId = (typeof widgetIds)[number]
+type WidgetVisibility = Record<WidgetId, boolean>
+
+const defaultVisibility: WidgetVisibility = Object.fromEntries(widgetIds.map((id) => [id, true])) as WidgetVisibility
+
+function parseDashboardConfig(value?: string): { layouts: Layouts; visibility: WidgetVisibility } {
+  if (!value) return { layouts: defaultLayouts, visibility: defaultVisibility }
   try {
     const parsed = JSON.parse(value)
+    const storedLayouts = parsed?.layouts ?? parsed
     const ids = defaultLayouts.lg?.map((item) => item.i) ?? []
-    if (!ids.length || !['lg', 'md', 'sm'].every((breakpoint) => hasValidLayout(parsed?.[breakpoint], ids))) {
-      return defaultLayouts
+    if (!ids.length || !['lg', 'md', 'sm'].every((breakpoint) => hasValidLayout(storedLayouts?.[breakpoint], ids))) {
+      return { layouts: defaultLayouts, visibility: defaultVisibility }
     }
 
-    return Object.fromEntries(['lg', 'md', 'sm'].map((breakpoint) => [
+    const layouts = Object.fromEntries(['lg', 'md', 'sm'].map((breakpoint) => [
       breakpoint,
-      parsed[breakpoint].map((item: Layout[number]) => {
+      storedLayouts[breakpoint].map((item: Layout[number]) => {
         const defaultItem = defaultLayouts[breakpoint]?.find((candidate) => candidate.i === item.i)
         const minH = defaultItem?.minH ?? 2
         const minW = defaultItem?.minW ?? 1
         return { ...item, w: Math.max(item.w, minW), h: Math.max(item.h, minH), minW, minH }
       }),
     ]))
+    const visibility = { ...defaultVisibility, ...(parsed?.visibility ?? {}) }
+    return { layouts, visibility }
   } catch {
-    return defaultLayouts
+    return { layouts: defaultLayouts, visibility: defaultVisibility }
   }
 }
 
 function WidgetFrame({
   children,
   editMode,
+  widgetId,
+  visible,
+  onVisibilityChange,
   className = '',
 }: {
   children: ReactNode
   editMode: boolean
+  widgetId: WidgetId
+  visible: boolean
+  onVisibilityChange: (visible: boolean) => void
   className?: string
 }) {
   return (
-    <div className={`widget-shell widget-interactive ${className}`}>
+    <div className={`widget-shell widget-interactive ${!visible ? (editMode ? 'widget-is-hidden' : 'widget-is-removed') : ''} ${className}`}>
       {editMode && <div className="widget-handle" aria-label="Drag widget to reposition"><Grip aria-hidden="true" /></div>}
+      {editMode && (
+        <label className="widget-visibility-toggle">
+          <input type="checkbox" checked={visible} onChange={(event) => onVisibilityChange(event.target.checked)} />
+          <span>Show</span>
+        </label>
+      )}
       {children}
     </div>
   )
@@ -138,7 +159,9 @@ initialGoals = [],
   const [showRemindersModal, setShowRemindersModal] = useState(false)
   const [showSettingsModal, setShowSettingsModal] = useState(false)
   const [editMode, setEditMode] = useState(false)
-  const [layouts, setLayouts] = useState<Layouts>(() => parseLayouts(initialLayout))
+  const initialDashboardConfig = useMemo(() => parseDashboardConfig(initialLayout), [initialLayout])
+  const [layouts, setLayouts] = useState<Layouts>(() => initialDashboardConfig.layouts)
+  const [visibility, setVisibility] = useState<WidgetVisibility>(() => initialDashboardConfig.visibility)
   const { primaryColor } = useTheme()
 
   const formattedDate = useMemo(
@@ -146,10 +169,17 @@ initialGoals = [],
     [today],
   )
 
-  const saveLayouts = useCallback(async (nextLayouts: Layouts) => {
-    setLayouts(nextLayouts)
-    await updateUserPreferences({ dashboardLayout: JSON.stringify(nextLayouts) })
+  const saveDashboardConfig = useCallback(async (nextLayouts: Layouts, nextVisibility: WidgetVisibility) => {
+    await updateUserPreferences({ dashboardLayout: JSON.stringify({ layouts: nextLayouts, visibility: nextVisibility }) })
   }, [])
+
+  const handleVisibilityChange = useCallback((widgetId: WidgetId, visible: boolean) => {
+    setVisibility((current) => {
+      const next = { ...current, [widgetId]: visible }
+      void saveDashboardConfig(layouts, next)
+      return next
+    })
+  }, [layouts, saveDashboardConfig])
 
   const handleCalendarDateSelect = useCallback((date: string) => {
     setSelectedDate(date)
@@ -200,20 +230,20 @@ initialGoals = [],
           onLayoutChange={handleLayoutChange}
         >
           <section key="calendar" className="dashboard-widget" aria-label="Mini calendar">
-            <WidgetFrame editMode={editMode}><MiniCalendar onDateSelect={editMode ? noop : handleCalendarDateSelect} selectedDate={selectedDate} /></WidgetFrame>
+            <WidgetFrame editMode={editMode} widgetId="calendar" visible={visibility.calendar} onVisibilityChange={(value) => handleVisibilityChange('calendar', value)}><MiniCalendar onDateSelect={editMode ? noop : handleCalendarDateSelect} selectedDate={selectedDate} /></WidgetFrame>
           </section>
           <section key="today" className="dashboard-widget" aria-label="Today">
-            <WidgetFrame editMode={editMode} className="p-6"><p className="text-sm text-muted-foreground">Today</p><h2 className="mt-2 text-2xl font-bold">{formattedDate}</h2></WidgetFrame>
+            <WidgetFrame editMode={editMode} widgetId="today" visible={visibility.today} onVisibilityChange={(value) => handleVisibilityChange('today', value)} className="p-6"><p className="text-sm text-muted-foreground">Today</p><h2 className="mt-2 text-2xl font-bold">{formattedDate}</h2></WidgetFrame>
           </section>
           <section key="timers" className="dashboard-widget" aria-label="Active timers">
-            <WidgetFrame editMode={editMode} className="p-4"><h3 className="mb-3 text-sm font-semibold">Active Timers</h3><ActiveTimersWidget date={today} onAddGoal={() => setShowAddGoalModal(true)} initialGoals={initialGoals} initialSessions={initialSessions} disabled={editMode} /></WidgetFrame>
+            <WidgetFrame editMode={editMode} widgetId="timers" visible={visibility.timers} onVisibilityChange={(value) => handleVisibilityChange('timers', value)} className="p-4"><h3 className="mb-3 text-sm font-semibold">Active Timers</h3><ActiveTimersWidget date={today} onAddGoal={() => setShowAddGoalModal(true)} initialGoals={initialGoals} initialSessions={initialSessions} disabled={editMode} /></WidgetFrame>
           </section>
-          <section key="clock" className="dashboard-widget" aria-label="Clock"><WidgetFrame editMode={editMode} className="flex items-center justify-center p-6"><ClockWidget disabled={editMode} /></WidgetFrame></section>
-          <section key="actions" className="dashboard-widget" aria-label="Shortcuts"><WidgetFrame editMode={editMode} className="grid grid-cols-2 gap-3"><Button disabled={editMode} className="h-full rounded-xl border border-border bg-card hover:bg-muted" variant="ghost" onClick={() => setShowRemindersModal(true)}><span className="flex flex-col items-center gap-1"><Bell /> <span className="text-xs">Reminders</span></span></Button><Button disabled={editMode} className="h-full rounded-xl border border-border bg-card hover:bg-muted" variant="ghost" onClick={() => setShowSettingsModal(true)}><span className="flex flex-col items-center gap-1"><Settings /> <span className="text-xs">Settings</span></span></Button></WidgetFrame></section>
-          <section key="quick-actions" className="dashboard-widget" aria-label="Quick actions"><WidgetFrame editMode={editMode} className="p-4"><h3 className="mb-3 text-sm font-semibold">Quick Actions</h3><div className="flex flex-col gap-2"><Button disabled={editMode} variant="outline" onClick={() => setShowAddEventModal(true)}>+ Add Event</Button><Button disabled={editMode} variant="outline" onClick={() => setShowAddGoalModal(true)}>+ Add Goal</Button></div></WidgetFrame></section>
-          <section key="tasks" className="dashboard-widget" aria-label="Tasks"><WidgetFrame editMode={editMode} className="flex h-full min-h-[240px] flex-col overflow-visible p-4"><TasksWidget initialTasks={initialTasks} /></WidgetFrame></section>
-          <section key="upcoming" className="dashboard-widget" aria-label="Upcoming events"><WidgetFrame editMode={editMode} className="p-4"><UpcomingEventsWidget events={initialEvents} /></WidgetFrame></section>
-          <section key="goals" className="dashboard-widget" aria-label="Current goals"><WidgetFrame editMode={editMode} className="p-4"><CurrentGoalsWidget goals={currentGoals} /></WidgetFrame></section>
+          <section key="clock" className="dashboard-widget" aria-label="Clock"><WidgetFrame editMode={editMode} widgetId="clock" visible={visibility.clock} onVisibilityChange={(value) => handleVisibilityChange('clock', value)} className="flex items-center justify-center p-6"><ClockWidget disabled={editMode} /></WidgetFrame></section>
+          <section key="actions" className="dashboard-widget" aria-label="Shortcuts"><WidgetFrame editMode={editMode} widgetId="actions" visible={visibility.actions} onVisibilityChange={(value) => handleVisibilityChange('actions', value)} className="grid grid-cols-2 gap-3"><Button disabled={editMode} className="h-full rounded-xl border border-border bg-card hover:bg-muted" variant="ghost" onClick={() => setShowRemindersModal(true)}><span className="flex flex-col items-center gap-1"><Bell /> <span className="text-xs">Reminders</span></span></Button><Button disabled={editMode} className="h-full rounded-xl border border-border bg-card hover:bg-muted" variant="ghost" onClick={() => setShowSettingsModal(true)}><span className="flex flex-col items-center gap-1"><Settings /> <span className="text-xs">Settings</span></span></Button></WidgetFrame></section>
+          <section key="quick-actions" className="dashboard-widget" aria-label="Quick actions"><WidgetFrame editMode={editMode} widgetId="quick-actions" visible={visibility['quick-actions']} onVisibilityChange={(value) => handleVisibilityChange('quick-actions', value)} className="p-4"><h3 className="mb-3 text-sm font-semibold">Quick Actions</h3><div className="flex flex-col gap-2"><Button disabled={editMode} variant="outline" onClick={() => setShowAddEventModal(true)}>+ Add Event</Button><Button disabled={editMode} variant="outline" onClick={() => setShowAddGoalModal(true)}>+ Add Goal</Button></div></WidgetFrame></section>
+          <section key="tasks" className="dashboard-widget" aria-label="Tasks"><WidgetFrame editMode={editMode} widgetId="tasks" visible={visibility.tasks} onVisibilityChange={(value) => handleVisibilityChange('tasks', value)} className="flex h-full min-h-[240px] flex-col overflow-visible p-4"><TasksWidget initialTasks={initialTasks} /></WidgetFrame></section>
+          <section key="upcoming" className="dashboard-widget" aria-label="Upcoming events"><WidgetFrame editMode={editMode} widgetId="upcoming" visible={visibility.upcoming} onVisibilityChange={(value) => handleVisibilityChange('upcoming', value)} className="p-4"><UpcomingEventsWidget events={initialEvents} /></WidgetFrame></section>
+          <section key="goals" className="dashboard-widget" aria-label="Current goals"><WidgetFrame editMode={editMode} widgetId="goals" visible={visibility.goals} onVisibilityChange={(value) => handleVisibilityChange('goals', value)} className="p-4"><CurrentGoalsWidget goals={currentGoals} /></WidgetFrame></section>
         </DashboardGrid>
       </main>
 

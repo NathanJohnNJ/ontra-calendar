@@ -202,6 +202,11 @@
   z-index: 5;
 }
 
+.widget-is-hidden { opacity: 0.42; }
+.widget-is-removed { display: none; }
+.widget-visibility-toggle { position: absolute; top: 0.5rem; right: 0.75rem; z-index: 2; display: flex; align-items: center; gap: 0.35rem; border-radius: 9999px; background: hsl(var(--background) / 0.9); padding: 0.25rem 0.5rem; font-size: 0.7rem; color: hsl(var(--muted-foreground)); }
+.widget-visibility-toggle input { accent-color: hsl(var(--primary)); }
+
 .widget-handle {
   position: absolute;
   top: -10px;
