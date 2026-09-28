@@ -79,7 +79,19 @@ function parseLayouts(value?: string): Layouts {
   try {
     const parsed = JSON.parse(value)
     const ids = defaultLayouts.lg?.map((item) => item.i) ?? []
-    return ids.length && ['lg', 'md', 'sm'].every((breakpoint) => hasValidLayout(parsed?.[breakpoint], ids)) ? parsed : defaultLayouts
+    if (!ids.length || !['lg', 'md', 'sm'].every((breakpoint) => hasValidLayout(parsed?.[breakpoint], ids))) {
+      return defaultLayouts
+    }
+
+    return Object.fromEntries(['lg', 'md', 'sm'].map((breakpoint) => [
+      breakpoint,
+      parsed[breakpoint].map((item: Layout[number]) => {
+        const defaultItem = defaultLayouts[breakpoint]?.find((candidate) => candidate.i === item.i)
+        const minH = defaultItem?.minH ?? 2
+        const minW = defaultItem?.minW ?? 1
+        return { ...item, w: Math.max(item.w, minW), h: Math.max(item.h, minH), minW, minH }
+      }),
+    ]))
   } catch {
     return defaultLayouts
   }
@@ -199,7 +211,7 @@ initialGoals = [],
           <section key="clock" className="dashboard-widget" aria-label="Clock"><WidgetFrame editMode={editMode} className="flex items-center justify-center p-6"><ClockWidget disabled={editMode} /></WidgetFrame></section>
           <section key="actions" className="dashboard-widget" aria-label="Shortcuts"><WidgetFrame editMode={editMode} className="grid grid-cols-2 gap-3"><Button disabled={editMode} className="h-full rounded-xl border border-border bg-card hover:bg-muted" variant="ghost" onClick={() => setShowRemindersModal(true)}><span className="flex flex-col items-center gap-1"><Bell /> <span className="text-xs">Reminders</span></span></Button><Button disabled={editMode} className="h-full rounded-xl border border-border bg-card hover:bg-muted" variant="ghost" onClick={() => setShowSettingsModal(true)}><span className="flex flex-col items-center gap-1"><Settings /> <span className="text-xs">Settings</span></span></Button></WidgetFrame></section>
           <section key="quick-actions" className="dashboard-widget" aria-label="Quick actions"><WidgetFrame editMode={editMode} className="p-4"><h3 className="mb-3 text-sm font-semibold">Quick Actions</h3><div className="flex flex-col gap-2"><Button disabled={editMode} variant="outline" onClick={() => setShowAddEventModal(true)}>+ Add Event</Button><Button disabled={editMode} variant="outline" onClick={() => setShowAddGoalModal(true)}>+ Add Goal</Button></div></WidgetFrame></section>
-          <section key="tasks" className="dashboard-widget" aria-label="Tasks"><WidgetFrame editMode={editMode} className="flex min-h-0 flex-col p-4"><TasksWidget initialTasks={initialTasks} /></WidgetFrame></section>
+          <section key="tasks" className="dashboard-widget" aria-label="Tasks"><WidgetFrame editMode={editMode} className="flex h-full min-h-[240px] flex-col overflow-visible p-4"><TasksWidget initialTasks={initialTasks} /></WidgetFrame></section>
           <section key="upcoming" className="dashboard-widget" aria-label="Upcoming events"><WidgetFrame editMode={editMode} className="p-4"><UpcomingEventsWidget events={initialEvents} /></WidgetFrame></section>
           <section key="goals" className="dashboard-widget" aria-label="Current goals"><WidgetFrame editMode={editMode} className="p-4"><CurrentGoalsWidget goals={currentGoals} /></WidgetFrame></section>
         </DashboardGrid>
