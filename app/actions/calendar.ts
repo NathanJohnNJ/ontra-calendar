@@ -4,6 +4,8 @@ import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import {
   events,
+  tasks,
+  taskSubtasks,
   goals,
   timerSessions,
   reminders,
@@ -289,6 +291,47 @@ export async function getActiveTimerSessions(date: string) {
       ),
     )
     .orderBy(desc(timerSessions.sessionStart))
+}
+
+// Task Actions
+export async function createTask(data: { title: string; description?: string; links?: string; notes?: string; goalDate?: string; goalDurationMinutes?: number; repeatFrequency?: string; daysOfWeek?: number[] }) {
+  const userId = await getUserId()
+  const id = uuidv4()
+  await db.insert(tasks).values({ id, userId, title: data.title, description: data.description || null, links: JSON.stringify((data.links || '').split('\\n').map((link) => link.trim()).filter(Boolean)), notes: data.notes || null, goalDate: data.goalDate || null, goalDurationMinutes: data.goalDurationMinutes || null, repeatFrequency: data.repeatFrequency || 'once', daysOfWeek: JSON.stringify(data.daysOfWeek || []), createdAt: new Date(), updatedAt: new Date() })
+  revalidatePath('/')
+  return { id, userId, title: data.title, description: data.description || null, links: data.links || '', notes: data.notes || null, goalDate: data.goalDate || null, goalDurationMinutes: data.goalDurationMinutes || null, repeatFrequency: data.repeatFrequency || 'once', daysOfWeek: JSON.stringify(data.daysOfWeek || []), completed: false }
+}
+
+export async function getTasks() {
+  const userId = await getUserId()
+  const rows = await db.select().from(tasks).where(eq(tasks.userId, userId)).orderBy(desc(tasks.createdAt))
+  const children = await db.select().from(taskSubtasks).where(eq(taskSubtasks.taskId, rows.length ? rows[0].id : '__none__'))
+  return rows.map((task) => ({ ...task, links: JSON.parse(task.links || '[]').join('\\n'), subtasks: task.id === rows[0]?.id ? children : [] }))
+}
+
+export async function toggleTask(id: string, completed: boolean) {
+  const userId = await getUserId()
+  await db.update(tasks).set({ completed, updatedAt: new Date() }).where(and(eq(tasks.id, id), eq(tasks.userId, userId)))
+  revalidatePath('/')
+}
+
+export async function createTaskSubtask(taskId: string, data: { title: string; description?: string; priority: string }) {
+  const userId = await getUserId()
+  const owns = await db.select({ id: tasks.id }).from(tasks).where(and(eq(tasks.id, taskId), eq(tasks.userId, userId))).limit(1)
+  if (!owns.length) throw new Error('Unauthorized')
+  const id = uuidv4()
+  const row = { id, taskId, title: data.title, description: data.description || null, priority: data.priority || 'med', completed: false }
+  await db.insert(taskSubtasks).values(row)
+  revalidatePath('/')
+  return row
+}
+
+export async function toggleTaskSubtask(id: string, completed: boolean) {
+  const userId = await getUserId()
+  const owned = await db.select({ taskId: taskSubtasks.taskId }).from(taskSubtasks).innerJoin(tasks, eq(tasks.id, taskSubtasks.taskId)).where(and(eq(taskSubtasks.id, id), eq(tasks.userId, userId))).limit(1)
+  if (!owned.length) throw new Error('Unauthorized')
+  await db.update(taskSubtasks).set({ completed }).where(eq(taskSubtasks.id, id))
+  revalidatePath('/')
 }
 
 // Stats Actions
