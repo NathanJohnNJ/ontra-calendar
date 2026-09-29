@@ -4,8 +4,10 @@ import type { ReactNode } from 'react'
 import { Grip } from 'lucide-react'
 import type { Layout } from 'react-grid-layout'
 
-export type WidgetFrameProps = {
+export type WidgetProps = {
   children: ReactNode
+  title?: string
+  icon?: ReactNode
   editMode: boolean
   widgetId: string
   ariaLabel?: string
@@ -15,21 +17,31 @@ export type WidgetFrameProps = {
   resizeHandles?: Layout[number]['resizeHandles']
 }
 
-export function WidgetFrame({
+export function Widget({
   children,
+  title,
+  icon,
   editMode,
   widgetId,
   visible,
   onVisibilityChange,
   className = '',
   ariaLabel,
-}: WidgetFrameProps) {
+}: WidgetProps) {
   return (
     <section
       className={`dashboard-widget widget-shell widget-interactive ${!visible ? (editMode ? 'widget-is-hidden' : 'widget-is-removed') : ''} ${className}`}
       data-widget-id={widgetId}
       aria-label={ariaLabel}
     >
+      {title && (
+        <header className="widget-titlebar">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            {icon}
+            <span>{title}</span>
+          </div>
+        </header>
+      )}
       {editMode && (
         <div className="widget-edit-controls" aria-label={`${widgetId} widget controls`}>
           <div className="widget-handle" role="button" tabIndex={0} aria-label={`Drag ${widgetId} widget`}>
@@ -50,4 +62,5 @@ export function WidgetFrame({
   )
 }
 
-export type { WidgetFrameProps as WidgetComponentProps }
+export type { WidgetProps as WidgetComponentProps }
+export { Widget as WidgetFrame }
