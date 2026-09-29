@@ -125,7 +125,7 @@ function WidgetFrame({
     <div className={`widget-shell widget-interactive ${!visible ? (editMode ? 'widget-is-hidden' : 'widget-is-removed') : ''} ${className}`}>
       {editMode && (
         <div className="widget-edit-controls">
-          <div className="widget-handle" aria-label="Drag widget to reposition"><Grip aria-hidden="true" /></div>
+          <button type="button" className="widget-handle" aria-label="Drag widget to reposition"><Grip aria-hidden="true" /></button>
           <label
             className="widget-visibility-toggle"
             aria-label={`${visible ? 'Hide' : 'Show'} ${widgetId} widget`}
@@ -252,6 +252,7 @@ initialGoals = [],
           isDraggable={editMode}
           isResizable={editMode}
           draggableHandle=".widget-handle"
+          draggableCancel=".widget-visibility-toggle, .widget-visibility-toggle *"
           onLayoutChange={handleLayoutChange}
         >
           <section key="calendar" className="dashboard-widget" aria-label="Mini calendar">

@@ -247,6 +247,8 @@
   z-index: 20;
   display: flex;
   cursor: grab;
+  appearance: none;
+  font: inherit;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--card);
