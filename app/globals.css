@@ -261,8 +261,12 @@
   cursor: grabbing;
 }
 
-.dashboard-layout.is-editing .widget-interactive > :not(.widget-handle):not(.widget-visibility-toggle) {
+.dashboard-layout.is-editing .widget-interactive > :not(.widget-edit-controls) {
   pointer-events: none;
+}
+
+.dashboard-layout.is-editing .widget-edit-controls {
+  pointer-events: auto;
 }
 
 .dashboard-widget {

@@ -1,7 +1,6 @@
 'use client'
 
 import { useCallback, useMemo, useState } from 'react'
-import type { ReactNode } from 'react'
 import dynamic from 'next/dynamic'
 import { MiniCalendar } from './mini-calendar'
 import { ClockWidget } from './clock-widget'
@@ -9,6 +8,7 @@ import { ActiveTimersWidget, type TimerGoal } from './active-timers-widget'
 import { UpcomingEventsWidget, type UpcomingEvent } from './upcoming-events-widget'
 import { CurrentGoalsWidget, type CurrentGoal } from './current-goals-widget'
 import { TasksWidget } from './tasks-widget'
+import { WidgetFrame } from './widget-frame'
 import { useTheme } from '@/lib/theme-context'
 import { Bell, Check, Grip, Pencil, Settings } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -104,40 +104,6 @@ function parseDashboardConfig(value?: string): { layouts: Layouts; visibility: W
   } catch {
     return { layouts: defaultLayouts, visibility: defaultVisibility }
   }
-}
-
-function WidgetFrame({
-  children,
-  editMode,
-  widgetId,
-  visible,
-  onVisibilityChange,
-  className = '',
-}: {
-  children: ReactNode
-  editMode: boolean
-  widgetId: WidgetId
-  visible: boolean
-  onVisibilityChange: (visible: boolean) => void
-  className?: string
-}) {
-  return (
-    <div className={`widget-shell widget-interactive ${!visible ? (editMode ? 'widget-is-hidden' : 'widget-is-removed') : ''} ${className}`}>
-      {editMode && (
-        <div className="widget-edit-controls">
-          <button type="button" className="widget-handle" aria-label="Drag widget to reposition"><Grip aria-hidden="true" /></button>
-          <label
-            className="widget-visibility-toggle"
-            aria-label={`${visible ? 'Hide' : 'Show'} ${widgetId} widget`}
-            onMouseDown={(event) => event.stopPropagation()}
-          >
-            <input type="checkbox" checked={visible} onChange={(event) => onVisibilityChange(event.target.checked)} />
-          </label>
-        </div>
-      )}
-      {children}
-    </div>
-  )
 }
 
 export function HomeScreen({
@@ -251,6 +217,7 @@ initialGoals = [],
           allowOverlap={false}
           isDraggable={editMode}
           isResizable={editMode}
+          resizeHandles={['se']}
           draggableHandle=".widget-handle"
           draggableCancel=".widget-visibility-toggle, .widget-visibility-toggle *"
           onLayoutChange={handleLayoutChange}
