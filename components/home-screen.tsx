@@ -188,10 +188,30 @@ initialGoals = [],
     setIsExpanded(true)
   }, [])
   const noop = useCallback(() => {}, [])
+  const moveHiddenWidgetsToBottom = useCallback((sourceLayouts: Layouts, nextVisibility: WidgetVisibility): Layouts => {
+    return Object.fromEntries(Object.entries(sourceLayouts).map(([breakpoint, layout]) => {
+      if (!layout) return [breakpoint, layout]
+      const visibleItems = layout.filter((item) => nextVisibility[item.i as WidgetId] !== false)
+      const hiddenItems = layout.filter((item) => nextVisibility[item.i as WidgetId] === false)
+      const bottom = visibleItems.reduce((max, item) => Math.max(max, item.y + item.h), 0)
+      return [breakpoint, [...visibleItems, ...hiddenItems.map((item, index) => ({ ...item, y: bottom + index * item.h }))]]
+    }))
+  }, [])
+
   const handleLayoutChange = useCallback((_: Layout, nextLayouts: Layouts) => {
     setLayouts(nextLayouts)
-    if (editMode) void updateUserPreferences({ dashboardLayout: JSON.stringify(nextLayouts) })
-  }, [editMode])
+    if (editMode) void saveDashboardConfig(nextLayouts, visibility)
+  }, [editMode, saveDashboardConfig, visibility])
+
+  const handleEditModeChange = useCallback(() => {
+    setEditMode((current) => {
+      if (!current) return true
+      const nextLayouts = moveHiddenWidgetsToBottom(layouts, visibility)
+      setLayouts(nextLayouts)
+      void saveDashboardConfig(nextLayouts, visibility)
+      return false
+    })
+  }, [layouts, moveHiddenWidgetsToBottom, saveDashboardConfig, visibility])
 
   if (isExpanded) return <DayView date={expandedDate} onBack={() => setIsExpanded(false)} />
 
@@ -200,7 +220,7 @@ initialGoals = [],
       <header className="border-b border-border bg-card">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-6">
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl" style={{ color: primaryColor }}>Ontra Calendar</h1>
-          <Button variant={editMode ? 'default' : 'outline'} onClick={() => setEditMode((value) => !value)} aria-pressed={editMode}>
+          <Button variant={editMode ? 'default' : 'outline'} onClick={handleEditModeChange} aria-pressed={editMode}>
             {editMode ? <Check data-icon="inline-start" /> : <Pencil data-icon="inline-start" />}
             {editMode ? 'Done editing' : 'Arrange layout'}
           </Button>
