@@ -212,14 +212,14 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  pointer-events: none;
-  }
-
-  .widget-edit-controls .widget-handle {
   pointer-events: auto;
-  }
-  
-  .widget-edit-controls .widget-visibility-toggle {
+}
+
+.widget-edit-controls .widget-handle {
+  pointer-events: auto;
+}
+
+.widget-edit-controls .widget-visibility-toggle {
   position: static;
   display: flex;
   align-items: center;

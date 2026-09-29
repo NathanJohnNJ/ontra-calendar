@@ -126,7 +126,11 @@ function WidgetFrame({
       {editMode && (
         <div className="widget-edit-controls">
           <div className="widget-handle" aria-label="Drag widget to reposition"><Grip aria-hidden="true" /></div>
-          <label className="widget-visibility-toggle" aria-label={`${visible ? 'Hide' : 'Show'} ${widgetId} widget`}>
+          <label
+            className="widget-visibility-toggle"
+            aria-label={`${visible ? 'Hide' : 'Show'} ${widgetId} widget`}
+            onMouseDown={(event) => event.stopPropagation()}
+          >
             <input type="checkbox" checked={visible} onChange={(event) => onVisibilityChange(event.target.checked)} />
           </label>
         </div>
