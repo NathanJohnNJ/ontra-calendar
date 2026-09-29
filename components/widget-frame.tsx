@@ -8,6 +8,7 @@ export type WidgetFrameProps = {
   children: ReactNode
   editMode: boolean
   widgetId: string
+  ariaLabel?: string
   visible: boolean
   onVisibilityChange: (visible: boolean) => void
   className?: string
@@ -21,12 +22,13 @@ export function WidgetFrame({
   visible,
   onVisibilityChange,
   className = '',
+  ariaLabel,
 }: WidgetFrameProps) {
   return (
-    <div
-      className={`widget-shell widget-interactive ${!visible ? (editMode ? 'widget-is-hidden' : 'widget-is-removed') : ''} ${className}`}
+    <section
+      className={`dashboard-widget widget-shell widget-interactive ${!visible ? (editMode ? 'widget-is-hidden' : 'widget-is-removed') : ''} ${className}`}
       data-widget-id={widgetId}
-      data-resize-handles="se"
+      aria-label={ariaLabel}
     >
       {editMode && (
         <div className="widget-edit-controls" aria-label={`${widgetId} widget controls`}>
@@ -44,7 +46,7 @@ export function WidgetFrame({
         </div>
       )}
       {children}
-    </div>
+    </section>
   )
 }
 
